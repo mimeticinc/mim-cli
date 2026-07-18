@@ -41,7 +41,7 @@ beforeAll(async () => {
   const addr = stub.address();
   const port = typeof addr === "object" && addr ? addr.port : 0;
   stubUrl = `http://127.0.0.1:${port}/api/mim/mcp`;
-  // Reach the bin through a SYMLINK — the exact condition that used to break startup.
+  // Reach the bin through a SYMLINK, the exact condition that used to break startup.
   symlinkDir = mkdtempSync(join(tmpdir(), "mim-mcp-link-"));
   symlinkPath = join(symlinkDir, "mim-mcp");
   symlinkSync(binPath, symlinkPath);

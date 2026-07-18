@@ -128,7 +128,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   });
 }
 
-// Public surface — re-exported so existing imports of "./mim-cli" (tests, bins, and
+// Public surface. Re-exported so existing imports of "./mim-cli" (tests, bins, and
 // mim-mcp-stdio.ts) keep resolving without changes.
 export type { MimConfig } from "./config";
 export type { MimRuntime } from "./runtime";

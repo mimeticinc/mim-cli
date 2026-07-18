@@ -2,7 +2,7 @@
   "name": "@mimeticinc/mim-cli",
   "version": "0.1.9",
   "mcpName": "com.trymimetic/mimetic",
-  "description": "Mimetic CLI — growth context for Claude Code, Codex, and shell workflows",
+  "description": "Mimetic CLI: growth context for Claude Code, Codex, and shell workflows",
   "type": "module",
   "license": "MIT",
   "author": "Mimetic Inc.",
