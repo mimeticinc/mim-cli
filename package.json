@@ -1,0 +1,62 @@
+{
+  "name": "@mimeticinc/mim-cli",
+  "version": "0.1.9",
+  "mcpName": "com.trymimetic/mimetic",
+  "description": "Mimetic CLI — growth context for Claude Code, Codex, and shell workflows",
+  "type": "module",
+  "license": "MIT",
+  "author": "Mimetic Inc.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mimeticinc/mim-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mimeticinc/mim-cli/issues"
+  },
+  "homepage": "https://trymimetic.com",
+  "keywords": [
+    "mimetic",
+    "cli",
+    "growth",
+    "audit",
+    "mcp",
+    "analytics"
+  ],
+  "bin": {
+    "mim": "dist/mim-bin.js",
+    "mim-mcp": "dist/mim-mcp-bin.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "dist/mim-cli.js",
+  "types": "dist/mim-cli.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/mim-cli.d.ts",
+        "default": "./dist/mim-cli.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "esbuild": "0.28.1",
+    "tsup": "8.5.0",
+    "typescript": "^5.7.0",
+    "vite": "6.4.3",
+    "vitest": "^3.2.0"
+  }
+}
