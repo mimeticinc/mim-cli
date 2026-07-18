@@ -18,6 +18,7 @@ describe.sequential("mim auth credential lifecycle", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -69,5 +70,34 @@ describe.sequential("mim auth credential lifecycle", () => {
   it("does not accept bearer tokens as login arguments", async () => {
     await expect(runAuth(["login", "--token", "process-visible-secret"]))
       .rejects.toThrow("unknown auth login option: --token");
+  });
+
+  it("supports device login on a headless server without opening a browser", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/api/mim/cli/device")) {
+        return new Response(JSON.stringify({
+          device_code: "device-code",
+          user_code: "ABCD-1234",
+          verification_uri: "https://trymimetic.com/mim/cli/verify",
+          interval: 1,
+          expires_in: 60,
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      }
+      return new Response(JSON.stringify({
+        access_token: "mim_headless_token",
+        expires_at: "2026-10-16T00:00:00Z",
+        user: { email: "owner@example.com" },
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const login = runAuth(["login", "--no-open"]);
+    await vi.runAllTimersAsync();
+    await login;
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(existsSync(mimConfigPath())).toBe(true);
   });
 });

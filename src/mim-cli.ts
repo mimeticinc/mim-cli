@@ -21,7 +21,7 @@ export function mimUsage(): string {
 TryMimetic growth context for Claude Code, Codex, and shell workflows.
 
 Commands:
-  auth login                 Authenticate this machine with TryMimetic.
+  auth login [--no-open]     Authenticate this machine; print the URL without opening a browser.
   auth status                Show the active account and default project.
   auth logout                Revoke the stored token and remove local credentials.
   auth logout --local-only   Remove only this machine's stored credentials.

@@ -1,20 +1,81 @@
-# mim — the Mimetic CLI
+# mim: the Mimetic CLI
 
-Mimetic in your terminal: pull site audits, prioritized findings, code-fix PRs,
-and session-replay insights into shell workflows and coding agents such as
-Claude Code and Codex.
+Bring your site's growth context into the terminal and the AI tools where you
+already work.
+
+Mimetic connects audits, live analytics, ad performance, lifecycle marketing,
+and session behavior so you can find what is holding growth back, decide what
+to do next, and move into a reviewable fix workflow without hopping between
+dashboards. Use `mim` directly from the shell or give the same context and
+actions to Claude Code, Codex, and other MCP clients.
+
+Mimetic is the hosted service behind the CLI. Learn more at
+[trymimetic.com](https://trymimetic.com).
+
+## What you can accomplish
+
+- **Find the highest-impact problems.** Pull site audits, prioritized findings,
+  and redacted session-replay insights into one project context.
+- **Answer growth questions with live data.** Query acquisition, conversion,
+  revenue, search, advertising, product analytics, and lifecycle performance
+  without exporting CSV files.
+- **Repair measurement and acquisition setup.** Provision hosted GA4 and Search
+  Console, install tracking through a PR, Shopify pixel, or agent-applied
+  snippet, and create or connect Google Ads resources.
+- **Turn findings into reviewable work.** Start a code-fix workflow, then open
+  the proposed PR, diff, preview, or Mimetic review page.
+- **Give coding agents business context.** Let an MCP client inspect the same
+  findings and connected data before it recommends or starts an action.
+
+## Integrations
+
+| Integration | What it unlocks |
+|---|---|
+| **Google Analytics 4** | Query sessions, users, channels, landing pages, engagement, conversions, and revenue. Set up a hosted property and tag when measurement is missing. |
+| **Google Search Console** | Analyze queries, pages, countries, devices, clicks, impressions, CTR, and position. Hosted setup can also handle verification and sitemap submission. |
+| **Google Ads** | Inspect campaigns, spend, clicks, conversions, search terms, and other GAQL data. Create or link an account, connect it to GA4, and enable auto-tagging. |
+| **PostHog** | Run read-only HogQL against events and properties to investigate product usage, funnels, and behavior. |
+| **Klaviyo** | Review campaign and flow performance, lists, segments, and metrics. Check whether abandoned cart is live and find dead links in campaign templates. |
+| **GitHub** | Receive analytics installation and code fixes as reviewable pull requests, diffs, and previews. |
+| **Shopify** | Install hosted analytics through the Mimetic app pixel when that delivery path is available for the project. |
+| **Claude Code, Codex, and MCP clients** | Bring project context, connected-data queries, audits, and explicitly described action tools into an AI-assisted workflow. |
+
+## Questions you can answer
+
+Once the relevant accounts are connected, you can use the CLI or ask an MCP
+client questions such as:
+
+- Which landing pages lost organic clicks but still convert well in GA4?
+- Where is ad spend rising without a matching increase in conversions?
+- What are users struggling with in recent high-priority sessions?
+- Is the abandoned-cart flow live, and which campaign templates contain dead
+  links?
+- What is the highest-priority fix that is ready to start, and where can I
+  review the proposed change?
+
+## From context to action
 
 ```bash
-# Browser-based device login
-npx -y --package @mimeticinc/mim-cli mim auth login
+# Build a project brief from audits, findings, and connected signals
+mim context --project yourstore.com
 
-# Pull a growth-context pack for a project
-npx -y --package @mimeticinc/mim-cli mim context --project yourstore.com
+# Investigate acquisition and conversion performance
+mim query-ga4 --project yourstore.com \
+  --metrics sessions,conversions,totalRevenue \
+  --dimensions sessionDefaultChannelGroup
+mim query-gsc --project yourstore.com --dimensions query,page
+mim ads query --project yourstore.com
+
+# Check lifecycle marketing and recent customer friction
+mim klaviyo query --project yourstore.com --resource abandoned_cart_status
+mim recordings --project yourstore.com
+
+# Move a prioritized finding into a reviewable fix workflow
+mim fixes list --project yourstore.com
+mim fixes start 1 --project yourstore.com
 ```
 
-Requires Node.js 20 or newer.
-
-## Install
+## Get started
 
 Run on demand:
 
@@ -29,10 +90,30 @@ npm install -g @mimeticinc/mim-cli
 mim auth login
 ```
 
+Requires Node.js 20 or newer.
+
 ## Authentication and local credentials
 
 `mim auth login` opens a browser-based device flow. The server-issued token
 expires after a configured lifetime (90 days by default).
+
+### Headless servers and SSH
+
+The browser does not need to run on the same machine as the CLI. On a server
+without a desktop environment, start the device flow without attempting to
+launch a local browser:
+
+```bash
+mim auth login --no-open
+```
+
+Keep that process running, open the printed verification URL on your laptop or
+phone, and approve the login there. The server will finish the login by polling
+Mimetic and will store its own token in `~/.mim/config.json`.
+
+For unattended deployments, provide `MIM_API_TOKEN` through the server's secret
+manager or environment instead of relying on an interactive login. Do not put
+the token directly in a command argument.
 
 By default, the CLI stores that bearer token as plaintext JSON in
 `~/.mim/config.json`. On supported POSIX systems it enforces mode `0700` on the
@@ -59,7 +140,7 @@ could be exposed through shell history or process listings.
 
 | Command | What it does |
 |---|---|
-| `mim auth login` | Authenticate with the browser device flow. |
+| `mim auth login [--no-open]` | Authenticate with the device flow, optionally without launching a local browser. |
 | `mim auth status` | Show the active account, API origin, and default project. |
 | `mim auth logout [--local-only]` | Revoke and remove stored credentials, or remove only the local copy. |
 | `mim projects` | List projects/sites available to the authenticated account. |

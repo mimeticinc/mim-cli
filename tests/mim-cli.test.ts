@@ -66,6 +66,7 @@ describe("mim CLI helpers", () => {
     const usage = mimUsage();
 
     expect(usage).toContain("auth login");
+    expect(usage).toContain("auth login [--no-open]");
     expect(usage).toContain("context");
     expect(usage).toContain("replay [session_id]");
     expect(usage).toContain("audit start");
