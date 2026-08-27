@@ -33,39 +33,22 @@ describe("mim properties formatting", () => {
     expect(text).toContain("mim properties use <id>");
   });
 
-  // The first version of this warning fired on "selected property has 0
-  // sessions", a rule reverse-engineered from one incident. It cried wolf at a
-  // brand new store and stayed silent when the wrong property had a trickle of
-  // traffic. These pin the general behaviour: compare candidates, name the
-  // alternative, and say nothing when there is nothing to compare against.
-  const withSessions = (map: Record<string, number>) => ({
-    ...listPayload,
-    properties: listPayload.properties.map((row) =>
-      map[row.id as string] === undefined ? row : { ...row, sessions_28d: map[row.id as string] },
-    ),
-  });
-
-  it("names the busier alternative when the selection looks wrong", () => {
-    const text = formatPropertiesPayload(withSessions({ "328670959": 0, "403226097": 52347 }));
-    expect(text).toContain("403226097");
-    expect(text).toContain("52,347");
-  });
-
-  it("still warns when the wrong property has a trickle of traffic", () => {
-    // The old zero-threshold missed this case entirely.
-    const text = formatPropertiesPayload(withSessions({ "328670959": 3, "403226097": 52347 }));
-    expect(text).toContain("403226097");
-  });
-
-  it("stays quiet for a quiet site with nothing to compare against", () => {
-    // A new store legitimately reads zero. One candidate, so no claim to make.
-    const solo = { ...listPayload, properties: [{ ...listPayload.properties[0], selected: true, sessions_28d: 0 }] };
-    expect(formatPropertiesPayload(solo)).not.toContain("If that is the site you mean");
-  });
-
-  it("stays quiet when the selected property is already the busiest", () => {
-    const text = formatPropertiesPayload(withSessions({ "328670959": 52347, "403226097": 4 }));
-    expect(text).not.toContain("If that is the site you mean");
+  // Deliberately no "is this the wrong property" assertion. Two versions of
+  // that warning were written and both were fitted to laso.finance: a zero
+  // threshold, then a ratio with two invented constants. The listing shows
+  // sessions per candidate with the selection marked, which is the evidence;
+  // the reader draws the conclusion.
+  it("shows sessions for every candidate so a wrong pick is visible", () => {
+    const text = formatPropertiesPayload({
+      ...listPayload,
+      properties: listPayload.properties.map((row) =>
+        row.id === "328670959" ? { ...row, sessions_28d: 0, selected: true }
+                               : { ...row, sessions_28d: 52347 },
+      ),
+    });
+    expect(text).toMatch(/52,?347/);
+    expect(text).toContain("0");
+    expect(text).toContain("Switch with `mim properties use <id>`.");
   });
 
   it("handles no selection and no visible properties", () => {
