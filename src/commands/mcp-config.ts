@@ -61,6 +61,18 @@ args = ${JSON.stringify(args)}
 `;
 }
 
+export function cursorConfigPath(env: NodeJS.ProcessEnv = process.env): string {
+  return join(homeDir(env), ".cursor", "mcp.json");
+}
+
+export function windsurfConfigPath(env: NodeJS.ProcessEnv = process.env): string {
+  return join(homeDir(env), ".codeium", "windsurf", "mcp_config.json");
+}
+
+export function codexConfigPath(env: NodeJS.ProcessEnv = process.env): string {
+  return join(homeDir(env), ".codex", "config.toml");
+}
+
 export function claudeDesktopConfigPath(platform: NodeJS.Platform = process.platform, env: NodeJS.ProcessEnv = process.env): string {
   const home = homeDir(env);
   if (platform === "darwin") return join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json");
@@ -146,8 +158,44 @@ export type DesktopOutcome = {
 };
 
 export function installClaudeDesktopMcp(project: string, configPath = claudeDesktopConfigPath()): DesktopOutcome {
+  return installJsonMcpAgent("Claude Desktop", configPath, project);
+}
+
+export function installCursorMcp(project: string, configPath = cursorConfigPath()): DesktopOutcome {
+  return installJsonMcpAgent("Cursor", configPath, project);
+}
+
+export function installWindsurfMcp(project: string, configPath = windsurfConfigPath()): DesktopOutcome {
+  return installJsonMcpAgent("Windsurf", configPath, project);
+}
+
+// Codex writes TOML rather than the mcpServers object, so it has its own
+// writer. Same contract as the JSON one: back up, write, read back.
+export function installCodexMcp(project: string, configPath = codexConfigPath()): DesktopOutcome {
+  const existingText = existsSync(configPath) ? readFileSync(configPath, "utf8") : null;
+  if (existingText !== null && /^\s*\[mcp_servers\.mim\]\s*$/m.test(existingText)) {
+    return { status: "written", lines: [`Codex already has the mim server (${configPath}).`] };
+  }
+  const merged = mergeCodexConfig(existingText, project);
+  if (existingText !== null) copyFileSync(configPath, `${configPath}.bak`);
+  mkdirSync(dirname(configPath), { recursive: true });
+  writeFileSync(configPath, merged);
+  if (!/^\s*\[mcp_servers\.mim\]\s*$/m.test(readFileSync(configPath, "utf8"))) {
+    return { status: "failed", lines: [`Wrote ${configPath}, but the mim entry did not read back. Inspect the file by hand.`] };
+  }
+  return {
+    status: "written",
+    lines: [
+      `Added the mim server to Codex config: ${configPath}`,
+      ...(existingText !== null ? [`Previous config backed up to ${configPath}.bak`] : []),
+      "Restart Codex to load it.",
+    ],
+  };
+}
+
+export function installJsonMcpAgent(label: string, configPath: string, project: string): DesktopOutcome {
   if (!existsSync(dirname(configPath))) {
-    return { status: "not_installed", lines: [`Claude Desktop does not look installed (no ${dirname(configPath)}).`] };
+    return { status: "not_installed", lines: [`${label} does not look installed (no ${dirname(configPath)}).`] };
   }
   const existingText = existsSync(configPath) ? readFileSync(configPath, "utf8") : null;
   let merged: string;
@@ -174,11 +222,54 @@ export function installClaudeDesktopMcp(project: string, configPath = claudeDesk
   return {
     status: "written",
     lines: [
-      `Added the mim server to Claude Desktop config: ${configPath}`,
+      `Added the mim server to ${label} config: ${configPath}`,
       ...(existingText !== null ? [`Previous config backed up to ${configPath}.bak`] : []),
-      "Restart Claude Desktop to load it.",
+      `Restart ${label} to load it.`,
     ],
   };
+}
+
+// Codex keeps TOML, so this appends the table instead of reparsing and
+// rewriting the file. Re-emitting somebody's config to add one entry risks
+// dropping their comments and ordering, and this file is not ours to reformat.
+export function mergeCodexConfig(existingText: string | null, project?: string): string {
+  const block = codexMcpConfig(project).trimEnd();
+  if (!existingText || !existingText.trim()) return `${block}\n`;
+  if (/^\s*\[mcp_servers\.mim\]\s*$/m.test(existingText)) return existingText;
+  const base = existingText.endsWith("\n") ? existingText : `${existingText}\n`;
+  return `${base}\n${block}\n`;
+}
+
+export type AgentKind = "claude" | "codex" | "cursor" | "windsurf" | "desktop";
+
+export type DetectedAgent = { kind: AgentKind; label: string };
+
+// Which agents this machine actually has, so setup can wire the one somebody
+// uses instead of assuming Claude Code. Detection is by config directory
+// rather than by running each binary: it is instant, needs nothing on PATH,
+// and a directory is what these tools create on first run. Claude Code is the
+// exception, since it registers through its own CLI.
+export function detectAgentDirs(env: NodeJS.ProcessEnv = process.env): DetectedAgent[] {
+  const found: DetectedAgent[] = [];
+  const home = homeDir(env);
+  if (existsSync(join(home, ".codex"))) found.push({ kind: "codex", label: "Codex" });
+  if (existsSync(join(home, ".cursor"))) found.push({ kind: "cursor", label: "Cursor" });
+  if (existsSync(join(home, ".codeium", "windsurf"))) found.push({ kind: "windsurf", label: "Windsurf" });
+  if (existsSync(dirname(claudeDesktopConfigPath(process.platform, env)))) {
+    found.push({ kind: "desktop", label: "Claude Desktop" });
+  }
+  return found;
+}
+
+// Register with every agent found, so a Codex or Cursor user is not left
+// pasting a config block that the page told them to go find.
+export function installDetectedAgents(project: string, agents: DetectedAgent[]): { label: string; outcome: DesktopOutcome }[] {
+  return agents.map((agent) => {
+    if (agent.kind === "codex") return { label: agent.label, outcome: installCodexMcp(project) };
+    if (agent.kind === "cursor") return { label: agent.label, outcome: installCursorMcp(project) };
+    if (agent.kind === "windsurf") return { label: agent.label, outcome: installWindsurfMcp(project) };
+    return { label: agent.label, outcome: installClaudeDesktopMcp(project) };
+  });
 }
 
 export type McpProbe = { ok: boolean; toolCount: number; detail: string };
@@ -260,9 +351,12 @@ export async function runMcp(args: string[]): Promise<void> {
   if (!subcommand) {
     console.log("New machine? `mim setup` does login, MCP registration, and verification in one go.");
     console.log("Or register only the MCP server:");
-    console.log("  mim mcp install claude    Claude Code (falls back to Claude Desktop)");
-    console.log("  mim mcp install desktop   Claude Desktop config file");
-    console.log("  mim mcp install codex     Print Codex config");
+    console.log("  mim mcp install claude     Claude Code (falls back to Claude Desktop)");
+    console.log("  mim mcp install codex      Codex (~/.codex/config.toml)");
+    console.log("  mim mcp install cursor     Cursor (~/.cursor/mcp.json)");
+    console.log("  mim mcp install windsurf   Windsurf");
+    console.log("  mim mcp install desktop    Claude Desktop config file");
+    console.log("  mim mcp install all        Every agent found on this machine");
     console.log("The MCP server exposes project-scoped growth context and recording review briefs without raw replay event dumps.");
     return;
   }
@@ -287,10 +381,32 @@ export async function runMcp(args: string[]): Promise<void> {
     if (desktop.status !== "written") process.exitCode = 1;
     return;
   }
-  if (target === "codex") {
-    console.log(codexMcpConfig(project));
-    console.log("Add this to ~/.codex/config.toml, then restart Codex.");
+  if (target === "codex" || target === "cursor" || target === "windsurf") {
+    if (printOnly) {
+      console.log(target === "codex"
+        ? codexMcpConfig(project)
+        : JSON.stringify({ mcpServers: { mim: mimMcpServerEntry(project) } }, null, 2));
+      return;
+    }
+    const outcome = target === "codex"
+      ? installCodexMcp(project)
+      : target === "cursor" ? installCursorMcp(project) : installWindsurfMcp(project);
+    for (const line of outcome.lines) console.log(line);
+    if (outcome.status !== "written") process.exitCode = 1;
     return;
   }
-  throw new Error("mcp install target must be claude, desktop, or codex");
+  if (target === "all") {
+    const agents = detectAgentDirs();
+    if (!agents.length) {
+      console.log("No agent config directories found for Codex, Cursor, Windsurf or Claude Desktop.");
+      console.log("For Claude Code run: mim mcp install claude");
+      return;
+    }
+    for (const { label, outcome } of installDetectedAgents(project, agents)) {
+      for (const line of outcome.lines) console.log(`${label}: ${line}`);
+      if (outcome.status !== "written") process.exitCode = 1;
+    }
+    return;
+  }
+  throw new Error("mcp install target must be claude, codex, cursor, windsurf, desktop, or all");
 }

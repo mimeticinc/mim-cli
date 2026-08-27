@@ -1,6 +1,6 @@
 {
   "name": "@mimeticinc/mim-cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "mcpName": "com.trymimetic/mimetic",
   "description": "Mimetic CLI: growth context for Claude Code, Codex, and shell workflows",
   "type": "module",

@@ -9,7 +9,9 @@ import { LoginResult, ensureLoggedIn } from "./auth";
 import {
   ExecFn,
   execCommand,
+  detectAgentDirs,
   installClaudeDesktopMcp,
+  installDetectedAgents,
   probeMimMcpEndpoint,
   registerClaudeCodeMcp,
 } from "./mcp-config";
@@ -122,7 +124,7 @@ export async function runSetup(args: string[], exec: ExecFn = execCommand): Prom
   }
 
   say();
-  say("4/4 MCP for Claude Code");
+  say("4/4 MCP for your coding agents");
   if (!session) {
     say("  skipped: needs a working sign-in.");
   } else {
@@ -138,6 +140,19 @@ export async function runSetup(args: string[], exec: ExecFn = execCommand): Prom
       if (!registered) {
         say("  For Claude Code, install it first (https://claude.com/claude-code), then run `mim mcp install claude`.");
       }
+    }
+
+    // Claude Code is not the only agent people use. Register every other one
+    // this machine has, so a Codex or Cursor user is set up by the same single
+    // command instead of being told to go and paste a config block.
+    const others = detectAgentDirs().filter((agent) => !(agent.kind === "desktop" && registered));
+    for (const { label, outcome } of installDetectedAgents(defaultProject, others)) {
+      for (const line of outcome.lines) say(`  ${label}: ${line}`);
+      if (outcome.status === "written") registered = true;
+      else if (outcome.status === "failed") failures.push(`${label} MCP registration`);
+    }
+    if (!others.length && registration.status === "cli_missing") {
+      say("  No Codex, Cursor or Windsurf config directory found either.");
     }
     if (!registered) failures.push("MCP registration");
 
