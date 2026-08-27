@@ -12,7 +12,8 @@ and returned results pass through Mimetic's hosted systems.
 The simplest path is the same browser device flow used by the CLI:
 
 ```bash
-npx -y --package @mimeticinc/mim-cli mim auth login
+npm install -g @mimeticinc/mim-cli
+mim setup
 ```
 
 The wrapper then reads the saved token from `~/.mim/config.json`. Device-login

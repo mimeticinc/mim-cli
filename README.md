@@ -5,28 +5,33 @@ already work.
 
 ## Quick start
 
-One command sets up everything: sign-in, project detection, and MCP
-registration for Claude Code, with a live verification of each step.
-
-```bash
-npx -y @mimeticinc/mim-cli setup
-```
-
-Re-running it is safe: it reuses your existing login and registration instead
-of creating new credentials. Requires Node.js 20 or newer; `setup` checks this
-and tells you how to fix anything it finds.
-
-Prefer a global install?
+Install it, then run setup. Setup handles sign-in, project detection, and MCP
+registration for Claude Code, and verifies each step for real rather than
+assuming it worked.
 
 ```bash
 npm install -g @mimeticinc/mim-cli
 mim setup
 ```
 
-If `mim` says "command not found" after a global install, npm's global bin
-directory is not on your shell PATH. Run the npx form above; its install check
-prints the exact PATH fix for your shell. The npx form always works without
-PATH changes.
+Install globally rather than through `npx`. The MCP server Claude Code
+launches needs a `mim` that stays on your PATH, and every example in these
+docs is written as `mim <command>`. Requires Node.js 20 or newer.
+
+Re-running setup is safe: it reuses your existing login and registration
+instead of creating new credentials.
+
+If `mim` says "command not found" after the install, npm's global bin
+directory is not on your shell PATH. Run this to see the exact fix for your
+shell:
+
+```bash
+npx -y @mimeticinc/mim-cli setup
+```
+
+That prints the `export PATH=` line to add to your shell profile. Use the npx
+form for one-off commands too, but install globally before wiring up an MCP
+client.
 
 Mimetic connects audits, live analytics, ad performance, lifecycle marketing,
 and session behavior so you can find what is holding growth back, decide what
