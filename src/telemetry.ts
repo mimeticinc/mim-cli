@@ -30,7 +30,14 @@ export function sanitizeMimMetadata(value: unknown, depth = 0): unknown {
     const result: Record<string, unknown> = {};
     for (const [key, item] of Object.entries(value as Record<string, unknown>).slice(0, 40)) {
       const normalized = key.toLowerCase();
-      if (/(token|secret|authorization|password|credential|cookie|session|narrative|prompt|message|content|raw|body)/.test(normalized)) {
+      // Diagnostics are not user content. The `message` term below is there to
+      // strip replay narratives and prompt text, but it also swallowed
+      // error_message, which left every recorded failure undiagnosable: the
+      // first outside user to hit a 404 could not be helped because the reason
+      // was redacted. Error fields still get the 240-char string cap below.
+      if (/^error_(message|detail|code|reason)$/.test(normalized)) {
+        result[key] = sanitizeMimMetadata(item, depth + 1);
+      } else if (/(token|secret|authorization|password|credential|cookie|session|narrative|prompt|message|content|raw|body)/.test(normalized)) {
         result[key] = "[redacted]";
       } else {
         result[key] = sanitizeMimMetadata(item, depth + 1);
