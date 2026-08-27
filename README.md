@@ -179,6 +179,8 @@ could be exposed through shell history or process listings.
 | `mim auth logout [--local-only]` | Revoke and remove stored credentials, or remove only the local copy. |
 | `mim projects` | List projects/sites available to the authenticated account. |
 | `mim projects use <key>` | Save a default project so commands stop needing `--project`. |
+| `mim properties` | List the GA4 properties the project's Google connection can see, with 28-day sessions and the current selection. |
+| `mim properties use <id>` | Point the project at a specific GA4 property (validated against what the connection can see). |
 | `mim context` | Print a growth-context pack for a project. |
 | `mim recordings` | List recent session-replay summaries. |
 | `mim replay [session_id]` | Print one persisted replay insight; defaults to the latest. |

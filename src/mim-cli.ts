@@ -12,6 +12,7 @@ import { runKlaviyo } from "./commands/klaviyo";
 import { runMcp } from "./commands/mcp-config";
 import { runPostHog } from "./commands/posthog";
 import { runProjects } from "./commands/projects";
+import { runProperties } from "./commands/properties";
 import { runQuery } from "./commands/query";
 import { runSetup } from "./commands/setup";
 import { runSetupAnalytics } from "./commands/analytics";
@@ -33,6 +34,10 @@ Commands:
   auth logout --local-only   Remove only this machine's stored credentials.
   projects                   List projects/sites available to this account.
   projects use <key>         Save a default project so --project is not needed.
+  properties                 List the GA4 properties the project's Google connection
+                             can see, with 28-day sessions and the current selection.
+  properties use <id>        Point the project at a specific GA4 property. Validated
+                             server-side against what the connection can see.
   context                    Print a growth context pack for a project.
   recordings                 List recent session recording summaries.
   replay [session_id]        Print one persisted replay insight. Defaults to latest.
@@ -115,6 +120,7 @@ export async function mimMain(argv = process.argv.slice(2)): Promise<void> {
   if (command === "setup" || command === "init") return runSetup(args);
   if (command === "auth") return runAuth(args);
   if (command === "projects") return runProjects(args);
+  if (command === "properties") return runProperties(args);
   if (command === "context") return runContext(args);
   if (command === "recordings") return runCollectionCommand("recordings", args);
   if (command === "replay") return runReplay(args);
@@ -163,6 +169,7 @@ export {
 } from "./telemetry";
 export { formatMimListPayload, formatRecordingsPayload, formatReplayInsightPayload, formatAnalyticsSetupPayload, formatAdsStatusPayload, formatFixesPayload } from "./format";
 export { buildQueryToolArgs } from "./commands/query";
+export { formatPropertiesPayload, formatPropertySetPayload } from "./commands/properties";
 export { parseSetupAnalyticsArgs } from "./commands/analytics";
 export { parseAdsArgs } from "./commands/ads";
 export { parsePostHogArgs } from "./commands/posthog";
