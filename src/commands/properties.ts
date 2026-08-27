@@ -48,12 +48,24 @@ export function formatPropertiesPayload(payload: unknown): string {
     lines.push(row.map((cell, i) => cell.padEnd(widths[i])).join("  ").trimEnd());
   }
   if (record.note) lines.push("", String(record.note));
+  // Compare, do not threshold. A quiet property is not evidence of anything on
+  // its own: a new store legitimately reads zero, and a property picked in
+  // error can still show a trickle. What actually indicates the wrong choice is
+  // another candidate carrying far more of the site's traffic, so say that and
+  // name the alternative instead of flagging a number.
   const selectedRow = rows.find((row) => row.selected);
-  if (selectedRow && selectedRow.sessions_28d === 0) {
-    lines.push(
-      "",
-      "The selected property recorded 0 sessions in the last 28 days. If the site has traffic, this is probably the wrong property.",
-    );
+  if (selectedRow && typeof selectedRow.sessions_28d === "number") {
+    const better = rows
+      .filter((row) => !row.selected && typeof row.sessions_28d === "number")
+      .sort((a, b) => (b.sessions_28d as number) - (a.sessions_28d as number))[0];
+    const mine = selectedRow.sessions_28d as number;
+    const theirs = better ? (better.sessions_28d as number) : 0;
+    if (better && theirs >= 100 && theirs >= mine * 10) {
+      lines.push(
+        "",
+        `"${better.name}" (${better.id}) recorded ${theirs.toLocaleString()} sessions in the last 28 days against ${mine.toLocaleString()} on the one you have selected. If that is the site you mean, switch to it.`,
+      );
+    }
   }
   lines.push("", "Switch with `mim properties use <id>`.");
   return lines.join("\n");
