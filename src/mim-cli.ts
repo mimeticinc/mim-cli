@@ -13,6 +13,7 @@ import { runMcp } from "./commands/mcp-config";
 import { runPostHog } from "./commands/posthog";
 import { runProjects } from "./commands/projects";
 import { runQuery } from "./commands/query";
+import { runSetup } from "./commands/setup";
 import { runSetupAnalytics } from "./commands/analytics";
 
 export function mimUsage(): string {
@@ -21,11 +22,17 @@ export function mimUsage(): string {
 TryMimetic growth context for Claude Code, Codex, and shell workflows.
 
 Commands:
+  setup                      One command that gets a new machine working: install
+                             check, sign in, project detection, Claude Code MCP
+                             registration, and a live verification of each step.
+                             Safe to re-run; it reuses an existing login.
   auth login [--no-open]     Authenticate this machine; print the URL without opening a browser.
-  auth status                Show the active account and default project.
+  auth login --force         Sign in again as a different account.
+  auth status                Show and verify the active account, projects, and default project.
   auth logout                Revoke the stored token and remove local credentials.
   auth logout --local-only   Remove only this machine's stored credentials.
   projects                   List projects/sites available to this account.
+  projects use <key>         Save a default project so --project is not needed.
   context                    Print a growth context pack for a project.
   recordings                 List recent session recording summaries.
   replay [session_id]        Print one persisted replay insight. Defaults to latest.
@@ -66,7 +73,10 @@ Commands:
   billing open [plan]        Open Stripe Checkout in your browser.
   billing portal             Open the Stripe billing portal when available.
   mcp                        Print MCP setup help.
-  mcp install claude         Print a Claude Code MCP install command.
+  mcp install claude         Register the mim MCP server with Claude Code (user
+                             scope), verify it, and fall back to Claude Desktop.
+  mcp install claude --print Print the underlying claude mcp add command instead.
+  mcp install desktop        Add the mim server to Claude Desktop's config file.
   mcp install codex          Print Codex MCP config.
 
 Common options:
@@ -79,7 +89,7 @@ Common options:
   --mode <slim|full>         Audit mode. Default: slim. full adds deeper checks and SDK intel.
   --wait                     With audit start/rerun or setup-analytics, poll until completion.
   --target <kind>            With fixes open, choose review, preview, pr, diff, workflow, or report.
-  --run                      With mcp install claude, run the install command instead of printing it.
+  --print                    With mcp install claude, print the install command instead of running it.
 
 Environment:
   MIM_API_TOKEN              Overrides the locally stored access token.
@@ -102,6 +112,7 @@ export async function mimMain(argv = process.argv.slice(2)): Promise<void> {
     console.log(mimUsage());
     return;
   }
+  if (command === "setup" || command === "init") return runSetup(args);
   if (command === "auth") return runAuth(args);
   if (command === "projects") return runProjects(args);
   if (command === "context") return runContext(args);
@@ -156,4 +167,15 @@ export { parseSetupAnalyticsArgs } from "./commands/analytics";
 export { parseAdsArgs } from "./commands/ads";
 export { parsePostHogArgs } from "./commands/posthog";
 export { parseKlaviyoArgs } from "./commands/klaviyo";
-export { claudeMcpInstallCommand, codexMcpConfig } from "./commands/mcp-config";
+export {
+  claudeMcpInstallCommand,
+  claudeDesktopConfigPath,
+  codexMcpConfig,
+  mergeMcpServersConfig,
+  mimMcpServerEntry,
+  probeMimMcpEndpoint,
+  registerClaudeCodeMcp,
+} from "./commands/mcp-config";
+export { findOnPath, pathFixLines } from "./commands/setup";
+export { checkMimAccount, ensureDefaultProject, fetchMimProjects, noProjectsGuidance, parseProjectsPayload, summarizeProjects } from "./account";
+export { ensureLoggedIn } from "./commands/auth";

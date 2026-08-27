@@ -105,6 +105,8 @@ describe("mim CLI helpers", () => {
       "add",
       "--transport",
       "stdio",
+      "--scope",
+      "user",
       "mim",
       "--",
       "npx",

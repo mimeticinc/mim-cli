@@ -1,6 +1,6 @@
 {
   "name": "@mimeticinc/mim-cli",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "mcpName": "com.trymimetic/mimetic",
   "description": "Mimetic CLI: growth context for Claude Code, Codex, and shell workflows",
   "type": "module",
@@ -24,6 +24,7 @@
   ],
   "bin": {
     "mim": "dist/mim-bin.js",
+    "mim-cli": "dist/mim-bin.js",
     "mim-mcp": "dist/mim-mcp-bin.js"
   },
   "engines": {

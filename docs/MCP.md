@@ -25,19 +25,37 @@ does not accept a `--token` flag.
 
 ## Claude Code
 
-After login:
-
-```bash
-claude mcp add --transport stdio mim -- \
-  npx -y --package @mimeticinc/mim-cli mim-mcp \
-  --project yourstore.com
-```
-
-The CLI can print the same command:
+The recommended path registers and verifies in one step (or use `mim setup`
+for the whole onboarding):
 
 ```bash
 mim mcp install claude --project yourstore.com
 ```
+
+This runs `claude mcp add` at user scope so the server is available in every
+project, then confirms the registration through `claude mcp get mim` and a
+live call to the hosted endpoint. The local-scope default of a bare
+`claude mcp add` registers only for the current directory, which is easy to
+mistake for a failed install.
+
+To see or run the underlying command yourself:
+
+```bash
+mim mcp install claude --print
+claude mcp add --transport stdio --scope user mim -- \
+  npx -y --package @mimeticinc/mim-cli mim-mcp \
+  --project yourstore.com
+```
+
+## Claude Desktop
+
+```bash
+mim mcp install desktop --project yourstore.com
+```
+
+This merges a `mim` entry into `claude_desktop_config.json` (backing up the
+existing file first and preserving other servers), then restart Claude
+Desktop.
 
 Use your MCP client's secret storage if you configure `MIM_API_TOKEN` directly.
 

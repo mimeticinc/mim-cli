@@ -3,6 +3,31 @@
 Bring your site's growth context into the terminal and the AI tools where you
 already work.
 
+## Quick start
+
+One command sets up everything: sign-in, project detection, and MCP
+registration for Claude Code, with a live verification of each step.
+
+```bash
+npx -y @mimeticinc/mim-cli setup
+```
+
+Re-running it is safe: it reuses your existing login and registration instead
+of creating new credentials. Requires Node.js 20 or newer; `setup` checks this
+and tells you how to fix anything it finds.
+
+Prefer a global install?
+
+```bash
+npm install -g @mimeticinc/mim-cli
+mim setup
+```
+
+If `mim` says "command not found" after a global install, npm's global bin
+directory is not on your shell PATH. Run the npx form above; its install check
+prints the exact PATH fix for your shell. The npx form always works without
+PATH changes.
+
 Mimetic connects audits, live analytics, ad performance, lifecycle marketing,
 and session behavior so you can find what is holding growth back, decide what
 to do next, and move into a reviewable fix workflow without hopping between
@@ -75,27 +100,30 @@ mim fixes list --project yourstore.com
 mim fixes start 1 --project yourstore.com
 ```
 
-## Get started
+## Running commands
 
-Run on demand:
-
-```bash
-npx -y --package @mimeticinc/mim-cli mim <command>
-```
-
-Or install globally:
+With a global install, run `mim <command>`. Without one, every command also
+works through npx:
 
 ```bash
-npm install -g @mimeticinc/mim-cli
-mim auth login
+npx -y @mimeticinc/mim-cli <command>
 ```
-
-Requires Node.js 20 or newer.
 
 ## Authentication and local credentials
 
 `mim auth login` opens a browser-based device flow. The server-issued token
 expires after a configured lifetime (90 days by default).
+
+Logging in is idempotent: if this machine already has a working token, `mim
+auth login` verifies it against the server and reuses it instead of minting a
+new one. Use `mim auth login --force` to sign in as a different account.
+
+After every login the CLI makes a real API call to confirm the token works and
+to list your projects. Projects belong to the email your Mimetic audit or
+report was sent to. If you sign in with a different email (personal instead of
+work, for example), the project list will be empty and the CLI tells you which
+email to use instead. `mim auth status` runs the same server-side verification
+and shows exactly which account and projects this machine is using.
 
 ### Headless servers and SSH
 
@@ -140,10 +168,12 @@ could be exposed through shell history or process listings.
 
 | Command | What it does |
 |---|---|
-| `mim auth login [--no-open]` | Authenticate with the device flow, optionally without launching a local browser. |
-| `mim auth status` | Show the active account, API origin, and default project. |
+| `mim setup` | One-command onboarding: install check, sign-in, project detection, Claude Code MCP registration, and verification of each step. |
+| `mim auth login [--no-open] [--force]` | Authenticate with the device flow; reuses a working token unless forced. |
+| `mim auth status` | Show and server-verify the active account, projects, and default project. |
 | `mim auth logout [--local-only]` | Revoke and remove stored credentials, or remove only the local copy. |
 | `mim projects` | List projects/sites available to the authenticated account. |
+| `mim projects use <key>` | Save a default project so commands stop needing `--project`. |
 | `mim context` | Print a growth-context pack for a project. |
 | `mim recordings` | List recent session-replay summaries. |
 | `mim replay [session_id]` | Print one persisted replay insight; defaults to the latest. |
@@ -165,19 +195,29 @@ could be exposed through shell history or process listings.
 | `mim fixes start <rank>` | Queue a code-fix workflow. |
 | `mim fixes open <rank>` | Open the PR, preview, diff, review, or workflow. |
 | `mim billing status` / `checkout` / `portal` | Manage project billing. |
-| `mim mcp install claude` / `codex` | Print MCP client setup. |
+| `mim mcp install claude` | Register the mim MCP server with Claude Code (user scope) and verify it; falls back to Claude Desktop. |
+| `mim mcp install desktop` / `codex` | Write Claude Desktop config, or print Codex config. |
 
 Run `mim --help` for all options.
 
 ## MCP
 
 The `mim-mcp` binary proxies MCP stdio messages to Mimetic's hosted
-Streamable HTTP endpoint:
+Streamable HTTP endpoint. `mim setup` registers it for you. To register only
+the MCP piece:
 
 ```bash
-mim mcp install claude
-mim mcp install codex
+mim mcp install claude    # registers with Claude Code at user scope, then verifies
+mim mcp install desktop   # writes Claude Desktop's config file (with a backup)
+mim mcp install codex     # prints config for ~/.codex/config.toml
 ```
+
+`mim mcp install claude` registers at user scope on purpose: the Claude Code
+default (local scope) only applies to the directory the command ran in, which
+is the most common reason a "successful" install never shows up in a session.
+After registering, the CLI reads the entry back through `claude mcp get mim`
+and makes a live call to the hosted endpoint, so success means the server is
+reachable, not just that a command exited 0.
 
 The MCP surface includes read tools for findings, redacted replay insights, and
 provider-read-only analytics queries. It also includes explicitly described
