@@ -6,17 +6,22 @@ already work.
 ## Quick start
 
 Install it, then run setup. Setup handles sign-in, project detection, and MCP
-registration for Claude Code, and verifies each step for real rather than
-assuming it worked.
+registration for whichever agents this machine has, and verifies each step for
+real rather than assuming it worked.
 
 ```bash
 npm install -g @mimeticinc/mim-cli
 mim setup
 ```
 
-Install globally rather than through `npx`. The MCP server Claude Code
-launches needs a `mim` that stays on your PATH, and every example in these
-docs is written as `mim <command>`. Requires Node.js 20 or newer.
+Setup registers the server with Claude Code, Codex, Cursor, Windsurf and
+Claude Desktop, whichever of them it finds. Each config file is backed up
+before it is written, and any other MCP servers you have are left alone. Add
+one later with `mim mcp install cursor`, or re-run `mim mcp install all`.
+
+Install globally rather than through `npx`. Your agent launches `mim` as the
+MCP server, so it needs a `mim` that stays on your PATH, and every example in
+these docs is written as `mim <command>`. Requires Node.js 20 or newer.
 
 Re-running setup is safe: it reuses your existing login and registration
 instead of creating new credentials.
@@ -173,7 +178,7 @@ could be exposed through shell history or process listings.
 
 | Command | What it does |
 |---|---|
-| `mim setup` | One-command onboarding: install check, sign-in, project detection, Claude Code MCP registration, and verification of each step. |
+| `mim setup` | One-command onboarding: install check, sign-in, project detection, MCP registration for every agent found, and verification of each step. |
 | `mim auth login [--no-open] [--force]` | Authenticate with the device flow; reuses a working token unless forced. |
 | `mim auth status` | Show and server-verify the active account, projects, and default project. |
 | `mim auth logout [--local-only]` | Revoke and remove stored credentials, or remove only the local copy. |
@@ -203,7 +208,8 @@ could be exposed through shell history or process listings.
 | `mim fixes open <rank>` | Open the PR, preview, diff, review, or workflow. |
 | `mim billing status` / `checkout` / `portal` | Manage project billing. |
 | `mim mcp install claude` | Register the mim MCP server with Claude Code (user scope) and verify it; falls back to Claude Desktop. |
-| `mim mcp install desktop` / `codex` | Write Claude Desktop config, or print Codex config. |
+| `mim mcp install codex` / `cursor` / `windsurf` / `desktop` | Write that agent's config file, backing up what was there. Add `--print` to output the block instead. |
+| `mim mcp install all` | Register with every agent found on this machine. |
 
 Run `mim --help` for all options.
 
@@ -214,10 +220,19 @@ Streamable HTTP endpoint. `mim setup` registers it for you. To register only
 the MCP piece:
 
 ```bash
+mim mcp install all       # every agent found on this machine
 mim mcp install claude    # registers with Claude Code at user scope, then verifies
-mim mcp install desktop   # writes Claude Desktop's config file (with a backup)
-mim mcp install codex     # prints config for ~/.codex/config.toml
+mim mcp install codex     # writes ~/.codex/config.toml
+mim mcp install cursor    # writes ~/.cursor/mcp.json
+mim mcp install windsurf  # writes ~/.codeium/windsurf/mcp_config.json
+mim mcp install desktop   # writes Claude Desktop's config file
 ```
+
+Every file write is backed up first and read back after, and other MCP servers
+already in the file are preserved. Codex config is TOML, so the entry is
+appended rather than the file being reparsed and rewritten. Running any of
+these twice does not create a duplicate entry. Add `--print` to any of them to
+see the block without writing anything.
 
 `mim mcp install claude` registers at user scope on purpose: the Claude Code
 default (local scope) only applies to the directory the command ran in, which

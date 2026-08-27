@@ -62,7 +62,15 @@ Use your MCP client's secret storage if you configure `MIM_API_TOKEN` directly.
 
 ## Codex
 
-Add the following to your Codex MCP configuration after device login:
+`mim setup` writes this for you when it finds `~/.codex`. To do only Codex:
+
+```bash
+mim mcp install codex --project yourstore.com
+```
+
+That appends the entry to `~/.codex/config.toml`, backing the file up first and
+leaving the rest of it untouched. Restart Codex afterwards. To see the block
+without writing it, add `--print`:
 
 ```toml
 [mcp_servers.mim]
@@ -70,10 +78,15 @@ command = "npx"
 args = ["-y", "--package", "@mimeticinc/mim-cli", "mim-mcp", "--project", "yourstore.com"]
 ```
 
-The CLI prints this block with:
+## Cursor and Windsurf
+
+Both take the same `mcpServers` entry as Claude Desktop, at
+`~/.cursor/mcp.json` and `~/.codeium/windsurf/mcp_config.json`. `mim setup`
+writes whichever it finds, or:
 
 ```bash
-mim mcp install codex --project yourstore.com
+mim mcp install cursor --project yourstore.com
+mim mcp install windsurf --project yourstore.com
 ```
 
 ## Generic MCP client
