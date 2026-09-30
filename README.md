@@ -99,6 +99,9 @@ mim query-ga4 --project yourstore.com \
   --metrics sessions,conversions,totalRevenue \
   --dimensions sessionDefaultChannelGroup
 mim query-gsc --project yourstore.com --dimensions query,page
+mim query-bq --project yourstore.com --describe
+mim query-bq --project yourstore.com --sql \
+  "SELECT event_name, COUNT(*) AS n FROM \`events_*\` WHERE _TABLE_SUFFIX >= '20260901' GROUP BY 1 ORDER BY n DESC"
 mim ads query --project yourstore.com
 
 # Check lifecycle marketing and recent customer friction
@@ -192,6 +195,7 @@ could be exposed through shell history or process listings.
 | `mim findings` | List prioritized audit findings. |
 | `mim query-ga4 --metrics sessions` | Run a provider-read-only GA4 report. |
 | `mim query-gsc` | Run a provider-read-only Search Console query. |
+| `mim query-bq --sql <q>` | Run a read-only SELECT over the project's own GA4 BigQuery export (`--describe` for the dataset and table dates). |
 | `mim setup-analytics [--wait]` | Start hosted GA4 and Search Console setup. |
 | `mim setup-analytics --status` | Check hosted setup progress. |
 | `mim setup-analytics --channel agent` | Provision server-side and return a snippet for an agent to apply. |

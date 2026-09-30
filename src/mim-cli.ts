@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { DEFAULT_MIM_API_BASE_URL, MIM_CLIENT_VERSION } from "./config";
 import { runAds } from "./commands/ads";
 import { runAudit } from "./commands/audit";
+import { runQueryBq } from "./commands/bq";
 import { runAuth } from "./commands/auth";
 import { runBilling } from "./commands/billing";
 import { runCollectionCommand, runContext, runReplay } from "./commands/collections";
@@ -44,6 +45,12 @@ Commands:
   findings                   List audit/backlog findings from TryMimetic.
   query-ga4                  Query your connected GA4 (needs --metrics, e.g. sessions).
   query-gsc                  Query your connected Search Console (top queries/pages).
+  query-bq --sql "<SELECT>"  Read-only GoogleSQL over the project's own GA4 BigQuery
+                             export (raw events). FROM \`events_*\` resolves to the
+                             project's dataset; filter _TABLE_SUFFIX to limit bytes.
+                             Also --sql-file <path>, --limit <n> (default 100, max 1000).
+  query-bq --describe        Dataset name, location, and available table dates
+                             (the default when no --sql is given).
   setup-analytics            One-click hosted analytics setup for a project's site:
                              GA4 property + tag install (PR or Shopify pixel) + Search
                              Console verification. Runs in the background.
@@ -127,6 +134,7 @@ export async function mimMain(argv = process.argv.slice(2)): Promise<void> {
   if (command === "findings") return runCollectionCommand("findings", args);
   if (command === "query-ga4") return runQuery("query_ga4", args);
   if (command === "query-gsc") return runQuery("query_gsc", args);
+  if (command === "query-bq") return runQueryBq(args);
   if (command === "setup-analytics") return runSetupAnalytics(args);
   if (command === "ads") return runAds(args);
   if (command === "posthog") return runPostHog(args);
@@ -173,6 +181,7 @@ export { formatPropertiesPayload, formatPropertySetPayload } from "./commands/pr
 export { parseSetupAnalyticsArgs } from "./commands/analytics";
 export { parseAdsArgs } from "./commands/ads";
 export { parsePostHogArgs } from "./commands/posthog";
+export { parseQueryBqArgs, buildQueryBqToolCall } from "./commands/bq";
 export { parseKlaviyoArgs } from "./commands/klaviyo";
 export {
   claudeMcpInstallCommand,
