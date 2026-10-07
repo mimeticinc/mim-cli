@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.trymimetic/mimetic",
   "title": "Mimetic",
-  "description": "Growth audits, analytics queries, and reviewable setup and fix workflows for coding agents.",
-  "version": "0.1.9",
+  "description": "Growth data for any site you own: audit findings, session recordings, GA4, Ads and Search Console.",
+  "version": "1.0.2",
   "repository": {
     "url": "https://github.com/mimeticinc/mim-cli",
     "source": "github"
@@ -14,13 +14,15 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@mimeticinc/mim-cli",
-      "version": "0.1.9",
+      "version": "0.4.0",
       "runtimeHint": "npx",
-      "transport": { "type": "stdio" },
+      "transport": {
+        "type": "stdio"
+      },
       "environmentVariables": [
         {
           "name": "MIM_API_TOKEN",
-          "description": "Mimetic bearer token. Use secret storage and do not include it in command arguments.",
+          "description": "Mimetic bearer token. Use secret storage and do not put it in command arguments.",
           "isRequired": true,
           "isSecret": true,
           "format": "string"
@@ -38,16 +40,7 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://trymimetic.com/api/mim/mcp",
-      "headers": [
-        {
-          "name": "Authorization",
-          "description": "Mimetic bearer token, including the Bearer prefix.",
-          "isRequired": true,
-          "isSecret": true,
-          "format": "string"
-        }
-      ]
+      "url": "https://mcp.trymimetic.com/mcp"
     }
   ]
 }
