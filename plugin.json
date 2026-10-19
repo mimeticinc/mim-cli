@@ -1,14 +1,22 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "mimetic",
-  "version": "1.0.2",
-  "description": "Growth data for any site you own: audit findings, session recordings, GA4, Ads and Search Console.",
-  "homepage": "https://mcp.trymimetic.com/docs",
+  "version": "1.1.0",
+  "description": "Website audits, analytics, ads, and A/B test results for finding revenue opportunities.",
+  "homepage": "https://trymimetic.com/docs/mcp",
   "repository": "https://github.com/mimeticinc/mim-cli",
   "license": "MIT",
   "author": {
     "name": "Mimetic",
     "url": "https://trymimetic.com"
   },
-  "keywords": ["analytics", "seo", "ecommerce", "conversion", "ga4", "search-console", "google-ads"]
+  "keywords": [
+    "analytics",
+    "seo",
+    "ecommerce",
+    "conversion",
+    "ga4",
+    "search-console",
+    "google-ads"
+  ]
 }

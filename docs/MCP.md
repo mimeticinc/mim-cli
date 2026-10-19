@@ -1,5 +1,8 @@
 # Mimetic MCP
 
+[Connection guide and use cases](https://trymimetic.com/docs/mcp) ·
+[Live tool catalog](https://mcp.trymimetic.com/docs/mcp/tools.json)
+
 The package exposes `mim-mcp`, a small stdio-to-HTTP bridge for Mimetic's hosted
 MCP server. It reads newline-delimited JSON-RPC from stdin, sends each message to
 `https://trymimetic.com/api/mim/mcp`, and writes the JSON-RPC response to stdout.
@@ -117,14 +120,19 @@ Do not commit a literal token to a repository.
 
 ## Remote Streamable HTTP
 
-Clients that support authenticated Streamable HTTP can use the hosted endpoint
-without the stdio bridge:
+Clients that support Streamable HTTP and OAuth can use the canonical hosted
+endpoint without the stdio bridge:
 
 ```text
-https://trymimetic.com/api/mim/mcp
+https://mcp.trymimetic.com/mcp
 ```
 
-Send:
+The client follows the OAuth discovery challenge, opens Mimetic sign-in and
+consent, then obtains a token using PKCE. Read tools use `mcp:read`; setup and
+configuration actions require `mcp:write` as well. The CLI's existing
+`https://trymimetic.com/api/mim/mcp` endpoint remains supported.
+
+For clients configured with a Mimetic bearer token, send:
 
 ```text
 Authorization: Bearer <Mimetic token>
@@ -139,7 +147,7 @@ x-mim-project: yourstore.com
 For a smoke test:
 
 ```bash
-curl https://trymimetic.com/api/mim/mcp \
+curl https://mcp.trymimetic.com/mcp \
   -H "Authorization: Bearer ${MIM_API_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'

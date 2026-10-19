@@ -2,7 +2,7 @@
   "name": "@mimeticinc/mim-cli",
   "version": "0.4.1",
   "mcpName": "com.trymimetic/mimetic",
-  "description": "Mimetic CLI: growth context for Claude Code, Codex, and shell workflows",
+  "description": "Mimetic CLI and MCP: website audits, analytics, advertising, and experiment results",
   "type": "module",
   "license": "MIT",
   "author": "Mimetic Inc.",
@@ -13,14 +13,20 @@
   "bugs": {
     "url": "https://github.com/mimeticinc/mim-cli/issues"
   },
-  "homepage": "https://trymimetic.com",
+  "homepage": "https://trymimetic.com/docs/mcp",
   "keywords": [
     "mimetic",
     "cli",
     "growth",
     "audit",
     "mcp",
-    "analytics"
+    "analytics",
+    "conversion-optimization",
+    "seo",
+    "ecommerce",
+    "ga4",
+    "google-ads",
+    "ab-testing"
   ],
   "bin": {
     "mim": "dist/mim-bin.js",

@@ -3,6 +3,16 @@
 Bring your site's growth context into the terminal and the AI tools where you
 already work.
 
+Connect your AI assistant to website audits, analytics, advertising, and experiment
+results to identify revenue opportunities and implement reviewable improvements.
+
+- [MCP connection guide and use cases](https://trymimetic.com/docs/mcp)
+- [Live tool catalog and input schemas](https://mcp.trymimetic.com/docs/mcp/tools.json)
+- Remote MCP: `https://mcp.trymimetic.com/mcp` (Streamable HTTP with OAuth sign-in)
+
+The public catalog contains tool definitions. MCP requests require authentication
+and enforce access to your own projects and connected accounts.
+
 ## Quick start
 
 Install it, then run setup. Setup handles sign-in, project detection, and MCP

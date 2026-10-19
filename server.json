@@ -1,14 +1,14 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.trymimetic/mimetic",
-  "title": "Mimetic",
-  "description": "Growth data for any site you own: audit findings, session recordings, GA4, Ads and Search Console.",
-  "version": "1.0.2",
+  "title": "Mimetic — Website Growth and Analytics",
+  "description": "Website audits, analytics, ads, and A/B test results for finding revenue opportunities.",
+  "version": "1.1.0",
   "repository": {
     "url": "https://github.com/mimeticinc/mim-cli",
     "source": "github"
   },
-  "websiteUrl": "https://trymimetic.com",
+  "websiteUrl": "https://trymimetic.com/docs/mcp",
   "packages": [
     {
       "registryType": "npm",
@@ -42,5 +42,25 @@
       "type": "streamable-http",
       "url": "https://mcp.trymimetic.com/mcp"
     }
-  ]
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "documentation": "https://trymimetic.com/docs/mcp",
+      "toolCatalog": "https://mcp.trymimetic.com/docs/mcp/tools.json",
+      "llmsTxt": "https://mcp.trymimetic.com/llms.txt",
+      "categories": [
+        "analytics",
+        "marketing",
+        "ecommerce"
+      ],
+      "keywords": [
+        "conversion optimization",
+        "website audit",
+        "GA4",
+        "Google Ads",
+        "Search Console",
+        "A/B testing"
+      ]
+    }
+  }
 }
