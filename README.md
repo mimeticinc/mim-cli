@@ -329,6 +329,7 @@ protection; do not use it with production credentials.
 | `MIM_MCP_TIMEOUT_MS` | MCP request timeout; defaults to `120000` (PageSpeed and accessibility checks can take 20 to 50 seconds). |
 | `MIM_TELEMETRY=0` | Disable metadata-only CLI/MCP usage events. |
 | `MIM_DISABLE_TELEMETRY=1` | Alternative telemetry opt-out. |
+| `DO_NOT_TRACK=1` | Also turns telemetry off (the cross-tool convention). |
 | `MIM_ALLOW_INSECURE_HTTP=1` | Allow non-loopback plaintext HTTP for development only. |
 
 Metadata telemetry includes the client version, project, command or tool name,
@@ -348,3 +349,22 @@ npm pack --dry-run
 ```
 
 Licensed under the [MIT License](LICENSE). Copyright © 2026 Mimetic Inc.
+
+## Telemetry: what is sent
+
+The CLI sends one small event per command to `trymimetic.com`, on by default,
+the same way the Stripe CLI does. Turn it off with `MIM_TELEMETRY=0` or
+`DO_NOT_TRACK=1`.
+
+| Sent | Never sent |
+|---|---|
+| command name and the names of the options you used | option values, URLs, file paths |
+| project key, success or failure, duration | page content, analytics data, query text |
+| error type and a bounded outcome (`auth`, `not_found`, `rate_limited`, `server_error`, `timeout`...) | error messages |
+| CLI version, OS, CPU architecture | your API key (it is the request's credential, not part of the event) |
+| which AI agent ran it (Claude Code, Codex, Cursor...) and the terminal app, from the environment variables those tools set | anything from your shell history or files |
+
+The hosted MCP server records each tool call on our side (tool name, which
+app called it, duration, outcome, argument names) and never argument values
+or results.
+
