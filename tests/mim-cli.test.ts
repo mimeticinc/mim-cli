@@ -122,7 +122,8 @@ describe("mim CLI helpers", () => {
       "dubbah",
     ]);
     expect(codexMcpConfig("dubbah")).toContain("[mcp_servers.mim]");
-    expect(codexMcpConfig("dubbah")).toContain('"mim-mcp"');
+    expect(codexMcpConfig("dubbah")).toContain('url = "https://mcp.trymimetic.com/mcp"');
+    expect(codexMcpConfig("dubbah", { local: true })).toContain('"mim-mcp"');
     expect(codexMcpConfig("dubbah")).toContain('"dubbah"');
   });
 

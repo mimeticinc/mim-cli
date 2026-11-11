@@ -40,11 +40,18 @@ npm install -g @mimeticinc/mim-cli
 mim setup
 ```
 
-Setup registers the server with Claude Code, Codex, Cursor, Windsurf and
-Claude Desktop, whichever of them it finds. Claude Code and Cursor get the
-hosted server and sign you in in the browser the first time; the others use
-the local `mim-mcp` relay with your saved API key. Pass `--local` to use the
-relay everywhere (CI and headless machines). Each config file is backed up
+Setup points every AI app it finds at the hosted server,
+`https://mcp.trymimetic.com/mcp`: Claude Code, Codex, Cursor, VS Code and
+Windsurf get a config entry and sign you in in the browser the first time;
+Claude Desktop gets the connector steps (its config file cannot hold a remote
+server). No API key is written into any app's config.
+
+For CI and clients without browser sign-in, run `mim mcp headless`: it prints
+a config that sends your key from the `MIM_API_TOKEN` environment variable
+(`export MIM_API_TOKEN=$(mim auth token)`).
+
+The local `mim-mcp` relay is deprecated. It still works, and `--local` still
+writes it, but it will stop receiving updates; move to the hosted server. Each config file is backed up
 before it is written, and any other MCP servers you have are left alone. Add
 one later with `mim mcp install cursor`, or re-run `mim mcp install all`.
 
@@ -210,7 +217,9 @@ could be exposed through shell history or process listings.
 
 | Command | What it does |
 |---|---|
-| `mim setup [--local]` | One-command onboarding: install check, sign-in, project detection, MCP registration for every agent found (hosted server for Claude Code and Cursor unless `--local`), and verification of each step. |
+| `mim setup` | One-command onboarding: install check, sign-in, project detection, hosted MCP registration for every app found, and verification of each step. `--local` writes the deprecated relay instead. |
+| `mim mcp headless` | Config for CI and clients without browser sign-in: the hosted URL with the key from `MIM_API_TOKEN`. |
+| `mim auth token` | Print the saved API key, for `export MIM_API_TOKEN=$(mim auth token)`. |
 | `mim auth login [--no-open] [--force]` | Authenticate with the device flow; reuses a working token unless forced. |
 | `mim auth status` | Show and server-verify the active account, projects, and default project. |
 | `mim auth logout [--local-only]` | Revoke and remove stored credentials, or remove only the local copy. |

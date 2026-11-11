@@ -188,6 +188,15 @@ export async function runAuth(args: string[]): Promise<void> {
     return;
   }
 
+  if (subcommand === "token") {
+    // For `export MIM_API_TOKEN=$(mim auth token)` in CI and headless MCP
+    // setups (same contract as `gh auth token`): the bare token on stdout.
+    if (kept.length) throw new Error(`unknown auth token option: ${kept[0]}`);
+    if (!runtime.token) throw new Error("not signed in; run `mim auth login` first");
+    process.stdout.write(`${runtime.token}\n`);
+    return;
+  }
+
   if (subcommand === "status") {
     if (kept.length) throw new Error(`unknown auth status option: ${kept[0]}`);
     if (!runtime.token) {
