@@ -298,7 +298,7 @@ protection; do not use it with production credentials.
 | `MIM_MCP_URL` | Full MCP URL; defaults to `<API origin>/api/mim/mcp`. |
 | `MIM_PROJECT` | Default project/site key. |
 | `MIM_CONFIG_DIR` | Credential directory; defaults to `~/.mim`. |
-| `MIM_MCP_TIMEOUT_MS` | MCP request timeout; defaults to `30000`. |
+| `MIM_MCP_TIMEOUT_MS` | MCP request timeout; defaults to `120000` (PageSpeed and accessibility checks can take 20 to 50 seconds). |
 | `MIM_TELEMETRY=0` | Disable metadata-only CLI/MCP usage events. |
 | `MIM_DISABLE_TELEMETRY=1` | Alternative telemetry opt-out. |
 | `MIM_ALLOW_INSECURE_HTTP=1` | Allow non-loopback plaintext HTTP for development only. |

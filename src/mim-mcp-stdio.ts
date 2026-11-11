@@ -37,7 +37,7 @@ Environment:
   MIM_API_BASE_URL    TryMimetic API origin. Default: https://trymimetic.com.
   MIM_MCP_URL         Full MCP endpoint. Default: MIM_API_BASE_URL + /api/mim/mcp.
   MIM_PROJECT         Default project/site key.
-  MIM_MCP_TIMEOUT_MS  Request timeout. Default: 30000.
+  MIM_MCP_TIMEOUT_MS  Request timeout. Default: 120000 (page checks and scans can take a while).
 `;
 }
 
@@ -57,7 +57,7 @@ export function parseMimMcpOptions(args = process.argv.slice(2), env = process.e
   let mcpUrl = env.MIM_MCP_URL?.trim() || "";
   let project = defaultMimProject(config, env);
   let token = mimAuthToken(config, env);
-  let timeoutMs = Number(env.MIM_MCP_TIMEOUT_MS || "30000");
+  let timeoutMs = Number(env.MIM_MCP_TIMEOUT_MS || "120000");
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
