@@ -1,6 +1,6 @@
 {
   "name": "@mimeticinc/mim-cli",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "mcpName": "com.trymimetic/mimetic",
   "description": "Mimetic CLI and MCP: website audits, analytics, advertising, and experiment results",
   "type": "module",

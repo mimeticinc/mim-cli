@@ -76,12 +76,27 @@ export function mimMcpServerEntry(project?: string): { command: string; args: st
   };
 }
 
-export function codexMcpConfig(project?: string): string {
+export function codexMcpConfig(project?: string, mode: InstallMode = {}): string {
+  if (!mode.local) {
+    // Codex speaks Streamable HTTP and runs the OAuth sign-in itself
+    // (`codex mcp login mim`), the same setup Stripe documents for Codex.
+    return `[mcp_servers.mim]
+url = ${JSON.stringify(remoteMcpUrl())}
+${project ? `http_headers = { "x-mim-project" = ${JSON.stringify(project)} }\n` : ""}`;
+  }
   const args = ["-y", "--package", "@mimeticinc/mim-cli", "mim-mcp", ...(project ? ["--project", project] : [])];
   return `[mcp_servers.mim]
 command = "npx"
 args = ${JSON.stringify(args)}
 `;
+}
+
+// VS Code keeps user MCP servers in <user dir>/mcp.json under "servers".
+export function vscodeConfigPath(platform: NodeJS.Platform = process.platform, env: NodeJS.ProcessEnv = process.env): string {
+  const home = homeDir(env);
+  if (platform === "darwin") return join(home, "Library", "Application Support", "Code", "User", "mcp.json");
+  if (platform === "win32") return join(env.APPDATA || join(home, "AppData", "Roaming"), "Code", "User", "mcp.json");
+  return join(env.XDG_CONFIG_HOME || join(home, ".config"), "Code", "User", "mcp.json");
 }
 
 export function cursorConfigPath(env: NodeJS.ProcessEnv = process.env): string {
@@ -197,18 +212,64 @@ export function installCursorMcp(project: string, configPath = cursorConfigPath(
     mode.local ? undefined : remoteMcpServerEntry(project));
 }
 
-export function installWindsurfMcp(project: string, configPath = windsurfConfigPath()): DesktopOutcome {
-  return installJsonMcpAgent("Windsurf", configPath, project);
+export function installWindsurfMcp(project: string, configPath = windsurfConfigPath(), mode: InstallMode = {}): DesktopOutcome {
+  // Windsurf names the remote field serverUrl rather than url.
+  return installJsonMcpAgent("Windsurf", configPath, project,
+    mode.local ? undefined : { serverUrl: remoteMcpUrl(), ...(project ? { headers: { "x-mim-project": project } } : {}) });
+}
+
+// VS Code: {"servers": {"mim": {"type": "http", "url": ...}}}; it prompts
+// for the OAuth sign-in on first use.
+export function installVscodeMcp(project: string, configPath = vscodeConfigPath()): DesktopOutcome {
+  if (!existsSync(dirname(configPath))) {
+    return { status: "not_installed", lines: [`VS Code does not look installed (no ${dirname(configPath)}).`] };
+  }
+  const existingText = existsSync(configPath) ? readFileSync(configPath, "utf8") : null;
+  let parsed: Record<string, unknown> = {};
+  try {
+    if (existingText && existingText.trim()) {
+      const value = JSON.parse(existingText) as unknown;
+      if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("existing config root is not a JSON object");
+      parsed = value as Record<string, unknown>;
+    }
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return { status: "failed", lines: [`Could not update ${configPath}: ${detail}.`, "Fix or remove that file, then run this again. Nothing was changed."] };
+  }
+  const servers = parsed.servers && typeof parsed.servers === "object" && !Array.isArray(parsed.servers)
+    ? (parsed.servers as Record<string, unknown>) : {};
+  const entry = { type: "http", url: remoteMcpUrl(), ...(project ? { headers: { "x-mim-project": project } } : {}) };
+  const merged = `${JSON.stringify({ ...parsed, servers: { ...servers, mim: entry } }, null, 2)}\n`;
+  if (existingText !== null) copyFileSync(configPath, `${configPath}.bak`);
+  writeFileSync(configPath, merged);
+  return {
+    status: "written",
+    lines: [
+      `Added the hosted mim server to VS Code: ${configPath}`,
+      ...(existingText !== null ? [`Previous config backed up to ${configPath}.bak`] : []),
+      "VS Code asks you to sign in to Mimetic the first time it uses the server.",
+    ],
+  };
+}
+
+// Claude Desktop's config file only takes local (stdio) servers. Remote
+// servers are added in the app as a connector, so setup says how instead of
+// writing a relay entry.
+export function claudeDesktopConnectorSteps(): string[] {
+  return [
+    "Claude Desktop and claude.ai: Settings, Connectors, Add custom connector,",
+    `paste ${remoteMcpUrl()} and click Connect. (https://claude.ai/settings/connectors)`,
+  ];
 }
 
 // Codex writes TOML rather than the mcpServers object, so it has its own
 // writer. Same contract as the JSON one: back up, write, read back.
-export function installCodexMcp(project: string, configPath = codexConfigPath()): DesktopOutcome {
+export function installCodexMcp(project: string, configPath = codexConfigPath(), mode: InstallMode = {}): DesktopOutcome {
   const existingText = existsSync(configPath) ? readFileSync(configPath, "utf8") : null;
   if (existingText !== null && /^\s*\[mcp_servers\.mim\]\s*$/m.test(existingText)) {
     return { status: "written", lines: [`Codex already has the mim server (${configPath}).`] };
   }
-  const merged = mergeCodexConfig(existingText, project);
+  const merged = mergeCodexConfig(existingText, project, mode);
   if (existingText !== null) copyFileSync(configPath, `${configPath}.bak`);
   mkdirSync(dirname(configPath), { recursive: true });
   writeFileSync(configPath, merged);
@@ -220,7 +281,7 @@ export function installCodexMcp(project: string, configPath = codexConfigPath())
     lines: [
       `Added the mim server to Codex config: ${configPath}`,
       ...(existingText !== null ? [`Previous config backed up to ${configPath}.bak`] : []),
-      "Restart Codex to load it.",
+      mode.local ? "Restart Codex to load it." : "Run `codex mcp login mim` to sign in, then restart Codex.",
     ],
   };
 }
@@ -267,15 +328,15 @@ export function installJsonMcpAgent(label: string, configPath: string, project: 
 // Codex keeps TOML, so this appends the table instead of reparsing and
 // rewriting the file. Re-emitting somebody's config to add one entry risks
 // dropping their comments and ordering, and this file is not ours to reformat.
-export function mergeCodexConfig(existingText: string | null, project?: string): string {
-  const block = codexMcpConfig(project).trimEnd();
+export function mergeCodexConfig(existingText: string | null, project?: string, mode: InstallMode = {}): string {
+  const block = codexMcpConfig(project, mode).trimEnd();
   if (!existingText || !existingText.trim()) return `${block}\n`;
   if (/^\s*\[mcp_servers\.mim\]\s*$/m.test(existingText)) return existingText;
   const base = existingText.endsWith("\n") ? existingText : `${existingText}\n`;
   return `${base}\n${block}\n`;
 }
 
-export type AgentKind = "claude" | "codex" | "cursor" | "windsurf" | "desktop";
+export type AgentKind = "claude" | "codex" | "cursor" | "windsurf" | "desktop" | "vscode";
 
 export type DetectedAgent = { kind: AgentKind; label: string };
 
@@ -290,6 +351,7 @@ export function detectAgentDirs(env: NodeJS.ProcessEnv = process.env): DetectedA
   if (existsSync(join(home, ".codex"))) found.push({ kind: "codex", label: "Codex" });
   if (existsSync(join(home, ".cursor"))) found.push({ kind: "cursor", label: "Cursor" });
   if (existsSync(join(home, ".codeium", "windsurf"))) found.push({ kind: "windsurf", label: "Windsurf" });
+  if (existsSync(dirname(vscodeConfigPath(process.platform, env)))) found.push({ kind: "vscode", label: "VS Code" });
   if (existsSync(dirname(claudeDesktopConfigPath(process.platform, env)))) {
     found.push({ kind: "desktop", label: "Claude Desktop" });
   }
@@ -301,9 +363,11 @@ export function detectAgentDirs(env: NodeJS.ProcessEnv = process.env): DetectedA
 export function installDetectedAgents(project: string, agents: DetectedAgent[],
   mode: InstallMode = {}): { label: string; outcome: DesktopOutcome }[] {
   return agents.map((agent) => {
-    if (agent.kind === "codex") return { label: agent.label, outcome: installCodexMcp(project) };
+    if (agent.kind === "codex") return { label: agent.label, outcome: installCodexMcp(project, codexConfigPath(), mode) };
     if (agent.kind === "cursor") return { label: agent.label, outcome: installCursorMcp(project, cursorConfigPath(), mode) };
-    if (agent.kind === "windsurf") return { label: agent.label, outcome: installWindsurfMcp(project) };
+    if (agent.kind === "windsurf") return { label: agent.label, outcome: installWindsurfMcp(project, windsurfConfigPath(), mode) };
+    if (agent.kind === "vscode") return { label: agent.label, outcome: installVscodeMcp(project) };
+    if (!mode.local) return { label: agent.label, outcome: { status: "written" as const, lines: claudeDesktopConnectorSteps() } };
     return { label: agent.label, outcome: installClaudeDesktopMcp(project) };
   });
 }
@@ -393,11 +457,17 @@ export async function runMcp(args: string[]): Promise<void> {
     console.log("  mim mcp install codex      Codex (~/.codex/config.toml)");
     console.log("  mim mcp install cursor     Cursor (~/.cursor/mcp.json)");
     console.log("  mim mcp install windsurf   Windsurf");
-    console.log("  mim mcp install desktop    Claude Desktop config file");
+    console.log("  mim mcp install vscode     VS Code (user mcp.json)");
+    console.log("  mim mcp install desktop    Claude Desktop (prints the connector steps)");
+    console.log("  mim mcp headless           Config for CI and clients without browser sign-in");
     console.log("  mim mcp install all        Every agent found on this machine");
-    console.log("Claude Code and Cursor get the hosted server (sign in once in the browser).");
-    console.log("Add --local to use the npx relay with your saved API key instead (CI, headless).");
+    console.log("Every client gets the hosted server and signs in once in the browser.");
+    console.log("--local writes the old npx relay instead (deprecated; use `mim mcp headless` for CI).");
     console.log("The MCP server exposes project-scoped growth context and recording review briefs without raw replay event dumps.");
+    return;
+  }
+  if (subcommand === "headless") {
+    for (const line of headlessMcpInstructions(project)) console.log(line);
     return;
   }
   if (subcommand !== "install") throw new Error(`unknown mcp command: ${subcommand}`);
@@ -418,22 +488,33 @@ export async function runMcp(args: string[]): Promise<void> {
     return;
   }
   if (target === "desktop") {
+    if (!mode.local) {
+      for (const line of claudeDesktopConnectorSteps()) console.log(line);
+      return;
+    }
     const desktop = installClaudeDesktopMcp(project);
     for (const line of desktop.lines) console.log(line);
     if (desktop.status !== "written") process.exitCode = 1;
     return;
   }
+  if (target === "vscode") {
+    const outcome = installVscodeMcp(project);
+    for (const line of outcome.lines) console.log(line);
+    if (outcome.status !== "written") process.exitCode = 1;
+    return;
+  }
   if (target === "codex" || target === "cursor" || target === "windsurf") {
     if (printOnly) {
       console.log(target === "codex"
-        ? codexMcpConfig(project)
+        ? codexMcpConfig(project, mode)
         : JSON.stringify({ mcpServers: { mim: target === "cursor" && !mode.local
           ? remoteMcpServerEntry(project) : mimMcpServerEntry(project) } }, null, 2));
       return;
     }
     const outcome = target === "codex"
-      ? installCodexMcp(project)
-      : target === "cursor" ? installCursorMcp(project, cursorConfigPath(), mode) : installWindsurfMcp(project);
+      ? installCodexMcp(project, codexConfigPath(), mode)
+      : target === "cursor" ? installCursorMcp(project, cursorConfigPath(), mode)
+        : installWindsurfMcp(project, windsurfConfigPath(), mode);
     for (const line of outcome.lines) console.log(line);
     if (outcome.status !== "written") process.exitCode = 1;
     return;
@@ -451,5 +532,25 @@ export async function runMcp(args: string[]): Promise<void> {
     }
     return;
   }
-  throw new Error("mcp install target must be claude, codex, cursor, windsurf, desktop, or all");
+  throw new Error("mcp install target must be claude, codex, cursor, windsurf, vscode, desktop, or all");
+}
+
+// CI and clients that cannot do the OAuth sign-in: the hosted server takes
+// the CLI's API key as a bearer token, read from an environment variable so
+// it never sits in a config file or on a command line (Stripe's pattern).
+export function headlessMcpInstructions(project?: string): string[] {
+  const headers: Record<string, string> = { Authorization: "Bearer ${MIM_API_TOKEN}" };
+  if (project) headers["x-mim-project"] = project;
+  return [
+    "For CI, scripts, and MCP clients without browser sign-in:",
+    "",
+    "  export MIM_API_TOKEN=$(mim auth token)",
+    "",
+    "Then point the client at the hosted server with the key as a bearer header:",
+    "",
+    JSON.stringify({ mcpServers: { mim: { type: "http", url: remoteMcpUrl(), headers } } }, null, 2)
+      .split("\n").map((line) => `  ${line}`).join("\n"),
+    "",
+    "Keep the key in the environment or a secret store, not in the config file itself.",
+  ];
 }

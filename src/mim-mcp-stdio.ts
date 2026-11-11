@@ -200,7 +200,16 @@ export async function proxyMimMcpMessage(raw: string, options: MimMcpOptions, fe
   }
 }
 
+export const MIM_MCP_DEPRECATION = [
+  "mim-mcp: this local relay is deprecated and will stop receiving updates.",
+  "Connect your client to the hosted server instead: https://mcp.trymimetic.com/mcp",
+  "Run `mim setup` to switch every client on this machine, or `mim mcp headless` for CI.",
+].join("\n");
+
 export function runMimMcpStdio(options = parseMimMcpOptions()): void {
+  // stderr only: stdout is the MCP channel. Clients show stderr in their
+  // server logs, which is where someone debugging this would look.
+  if (process.env.MIM_MCP_QUIET !== "1") process.stderr.write(`${MIM_MCP_DEPRECATION}\n`);
   process.stdin.setEncoding("utf8");
   let buffer = "";
   let chain = Promise.resolve();

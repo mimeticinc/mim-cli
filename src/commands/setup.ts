@@ -137,7 +137,7 @@ export async function runSetup(args: string[], exec: ExecFn = execCommand): Prom
     registration.lines.forEach((line, index) => {
       say(`  ${registered && index === 0 ? "ok: " : ""}${line}`);
     });
-    if (registration.status === "cli_missing") {
+    if (registration.status === "cli_missing" && local) {
       const desktop = installClaudeDesktopMcp(defaultProject);
       for (const line of desktop.lines) say(`  ${line}`);
       registered = desktop.status === "written";
