@@ -59,9 +59,23 @@ describe("Cursor and Windsurf share the mcpServers shape", () => {
     const written = JSON.parse(readFileSync(cfg, "utf8"));
     // THE thing that must never break: somebody else's server survives.
     expect(written.mcpServers.other).toEqual({ command: "x", args: [] });
+    // Default is the hosted server: Cursor signs in itself, no key on disk.
+    expect(written.mcpServers.mim).toEqual({
+      url: "https://mcp.trymimetic.com/mcp", headers: { "x-mim-project": "shop-com-1234" },
+    });
+    expect(outcome.lines.join(" ")).toContain("sign in");
+    expect(existsSync(`${cfg}.bak`)).toBe(true);
+  });
+
+  it("writes the npx relay with --local", () => {
+    const home = tempHome();
+    const cfg = join(home, ".cursor", "mcp.json");
+    mkdirSync(join(home, ".cursor"), { recursive: true });
+    const outcome = installCursorMcp("shop-com-1234", cfg, { local: true });
+    expect(outcome.status).toBe("written");
+    const written = JSON.parse(readFileSync(cfg, "utf8"));
     expect(written.mcpServers.mim.command).toBe("npx");
     expect(written.mcpServers.mim.args).toContain("shop-com-1234");
-    expect(existsSync(`${cfg}.bak`)).toBe(true);
   });
 
   it("says so rather than writing when the agent is not installed", () => {

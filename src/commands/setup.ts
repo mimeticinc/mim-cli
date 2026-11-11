@@ -62,9 +62,13 @@ export async function runSetup(args: string[], exec: ExecFn = execCommand): Prom
   const { runtime, project: requestedProject, args: kept } = runtimeFromArgs(args);
   let noOpen = false;
   let forceLogin = false;
+  // Claude Code and Cursor get the hosted server by default; --local keeps
+  // the npx relay with the saved API key (CI, headless machines).
+  let local = false;
   for (const arg of kept) {
     if (arg === "--no-open") noOpen = true;
     else if (arg === "--force") forceLogin = true;
+    else if (arg === "--local") local = true;
     else throw new Error(`unknown setup option: ${arg}`);
   }
 
@@ -128,7 +132,7 @@ export async function runSetup(args: string[], exec: ExecFn = execCommand): Prom
   if (!session) {
     say("  skipped: needs a working sign-in.");
   } else {
-    const registration = await registerClaudeCodeMcp(defaultProject, exec);
+    const registration = await registerClaudeCodeMcp(defaultProject, exec, { local });
     let registered = registration.status === "registered" || registration.status === "already";
     registration.lines.forEach((line, index) => {
       say(`  ${registered && index === 0 ? "ok: " : ""}${line}`);
@@ -146,7 +150,7 @@ export async function runSetup(args: string[], exec: ExecFn = execCommand): Prom
     // this machine has, so a Codex or Cursor user is set up by the same single
     // command instead of being told to go and paste a config block.
     const others = detectAgentDirs().filter((agent) => !(agent.kind === "desktop" && registered));
-    for (const { label, outcome } of installDetectedAgents(defaultProject, others)) {
+    for (const { label, outcome } of installDetectedAgents(defaultProject, others, { local })) {
       for (const line of outcome.lines) say(`  ${label}: ${line}`);
       if (outcome.status === "written") registered = true;
       else if (outcome.status === "failed") failures.push(`${label} MCP registration`);
