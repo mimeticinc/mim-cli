@@ -13,6 +13,22 @@ results to identify revenue opportunities and implement reviewable improvements.
 The public catalog contains tool definitions. MCP requests require authentication
 and enforce access to your own projects and connected accounts.
 
+## Connect without installing anything
+
+Most AI apps connect to the hosted server directly and sign you in through
+the browser. Nothing to install and no API key to store:
+
+| App | How |
+|---|---|
+| Claude (web, desktop) | Settings, Connectors, Add custom connector: `https://mcp.trymimetic.com/mcp` |
+| ChatGPT | Settings, Connectors (developer mode), add `https://mcp.trymimetic.com/mcp` |
+| Claude Code | `claude mcp add --transport http --scope user mim https://mcp.trymimetic.com/mcp`, then `/mcp` to sign in |
+| Cursor | Add `{"mcpServers": {"mim": {"url": "https://mcp.trymimetic.com/mcp"}}}` to `~/.cursor/mcp.json`; Cursor asks you to sign in |
+| VS Code | Command palette, MCP: Add Server, HTTP, `https://mcp.trymimetic.com/mcp` |
+
+The CLI below is for the terminal, scripts, and clients that cannot reach a
+remote server.
+
 ## Quick start
 
 Install it, then run setup. Setup handles sign-in, project detection, and MCP
@@ -25,7 +41,10 @@ mim setup
 ```
 
 Setup registers the server with Claude Code, Codex, Cursor, Windsurf and
-Claude Desktop, whichever of them it finds. Each config file is backed up
+Claude Desktop, whichever of them it finds. Claude Code and Cursor get the
+hosted server and sign you in in the browser the first time; the others use
+the local `mim-mcp` relay with your saved API key. Pass `--local` to use the
+relay everywhere (CI and headless machines). Each config file is backed up
 before it is written, and any other MCP servers you have are left alone. Add
 one later with `mim mcp install cursor`, or re-run `mim mcp install all`.
 
@@ -191,7 +210,7 @@ could be exposed through shell history or process listings.
 
 | Command | What it does |
 |---|---|
-| `mim setup` | One-command onboarding: install check, sign-in, project detection, MCP registration for every agent found, and verification of each step. |
+| `mim setup [--local]` | One-command onboarding: install check, sign-in, project detection, MCP registration for every agent found (hosted server for Claude Code and Cursor unless `--local`), and verification of each step. |
 | `mim auth login [--no-open] [--force]` | Authenticate with the device flow; reuses a working token unless forced. |
 | `mim auth status` | Show and server-verify the active account, projects, and default project. |
 | `mim auth logout [--local-only]` | Revoke and remove stored credentials, or remove only the local copy. |

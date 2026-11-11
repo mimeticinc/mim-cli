@@ -22,11 +22,29 @@ export function execCommand(command: string, args: string[]): Promise<ExecResult
   });
 }
 
+// The hosted MCP server. Remote is the default for clients that handle a
+// remote server and its OAuth sign-in themselves (Claude Code, Cursor): no
+// API key on disk, nothing to update when the server gains tools, and no
+// local relay timeout. --local keeps the npx stdio relay (CI, headless, or a
+// client without remote support).
+export function remoteMcpUrl(env: NodeJS.ProcessEnv = process.env): string {
+  return env.MIM_REMOTE_MCP_URL || "https://mcp.trymimetic.com/mcp";
+}
+
+export type InstallMode = { local?: boolean };
+
 // User scope on purpose: the default `claude mcp add` scope is local, which
 // registers the server only for the directory the command ran in. Users then
 // open Claude Code in their own project, see no mim server, and conclude the
 // install failed.
-export function claudeMcpInstallCommand(project?: string): string[] {
+export function claudeMcpInstallCommand(project?: string, mode: InstallMode = {}): string[] {
+  if (!mode.local) {
+    return [
+      "claude", "mcp", "add", "--transport", "http", "--scope", "user",
+      ...(project ? ["--header", `x-mim-project: ${project}`] : []),
+      "mim", remoteMcpUrl(),
+    ];
+  }
   return [
     "claude",
     "mcp",
@@ -44,6 +62,11 @@ export function claudeMcpInstallCommand(project?: string): string[] {
     "mim-mcp",
     ...(project ? ["--project", project] : []),
   ];
+}
+
+// Cursor's remote entry: a url, signed in through Cursor's own OAuth prompt.
+export function remoteMcpServerEntry(project?: string): { url: string; headers?: Record<string, string> } {
+  return { url: remoteMcpUrl(), ...(project ? { headers: { "x-mim-project": project } } : {}) };
 }
 
 export function mimMcpServerEntry(project?: string): { command: string; args: string[] } {
@@ -82,7 +105,8 @@ export function claudeDesktopConfigPath(platform: NodeJS.Platform = process.plat
 
 // Pure merge so it is testable and so a bug can never eat someone's config:
 // every existing key and every existing MCP server is preserved verbatim.
-export function mergeMcpServersConfig(existingText: string | null, project?: string): string {
+export function mergeMcpServersConfig(existingText: string | null, project?: string,
+  entry: Record<string, unknown> = mimMcpServerEntry(project)): string {
   let parsed: Record<string, unknown> = {};
   if (existingText && existingText.trim()) {
     const value = JSON.parse(existingText) as unknown;
@@ -94,7 +118,7 @@ export function mergeMcpServersConfig(existingText: string | null, project?: str
   const existingServers = parsed.mcpServers && typeof parsed.mcpServers === "object" && !Array.isArray(parsed.mcpServers)
     ? (parsed.mcpServers as Record<string, unknown>)
     : {};
-  const merged = { ...parsed, mcpServers: { ...existingServers, mim: mimMcpServerEntry(project) } };
+  const merged = { ...parsed, mcpServers: { ...existingServers, mim: entry } };
   return `${JSON.stringify(merged, null, 2)}\n`;
 }
 
@@ -106,7 +130,8 @@ export type RegisterOutcome = {
 // Registers the mim server with Claude Code and then reads it back through
 // `claude mcp get`, because `claude mcp add` exiting 0 does not prove the
 // entry landed where the user's sessions will look for it.
-export async function registerClaudeCodeMcp(project: string, exec: ExecFn = execCommand): Promise<RegisterOutcome> {
+export async function registerClaudeCodeMcp(project: string, exec: ExecFn = execCommand,
+  mode: InstallMode = {}): Promise<RegisterOutcome> {
   const version = await exec("claude", ["--version"]);
   if (version.code === EXIT_COMMAND_NOT_FOUND) {
     return { status: "cli_missing", lines: ["The `claude` command was not found on this machine."] };
@@ -118,12 +143,13 @@ export async function registerClaudeCodeMcp(project: string, exec: ExecFn = exec
       status: "already",
       lines: [
         "Claude Code already has a mim MCP server registered; left it in place.",
-        "To re-register from scratch: claude mcp remove mim, then run this again.",
+        "To switch to the hosted connection (sign in once in the browser, no API key on disk): "
+          + "claude mcp remove mim, then run this again.",
       ],
     };
   }
 
-  const add = await exec("claude", claudeMcpInstallCommand(project).slice(1));
+  const add = await exec("claude", claudeMcpInstallCommand(project, mode).slice(1));
   if (add.code !== 0 && !/already exists/i.test(`${add.stdout}${add.stderr}`)) {
     const detail = (add.stderr || add.stdout).trim().slice(0, 300);
     return {
@@ -131,7 +157,7 @@ export async function registerClaudeCodeMcp(project: string, exec: ExecFn = exec
       lines: [
         `\`claude mcp add\` failed with exit code ${add.code}${detail ? `: ${detail}` : ""}.`,
         "Run this by hand to see the full error:",
-        `  ${claudeMcpInstallCommand(project).map((part) => (/\s/.test(part) ? JSON.stringify(part) : part)).join(" ")}`,
+        `  ${claudeMcpInstallCommand(project, mode).map((part) => (/\s/.test(part) ? JSON.stringify(part) : part)).join(" ")}`,
       ],
     };
   }
@@ -148,7 +174,12 @@ export async function registerClaudeCodeMcp(project: string, exec: ExecFn = exec
   }
   return {
     status: "registered",
-    lines: ["Registered the mim MCP server with Claude Code at user scope (available in every project)."],
+    lines: mode.local
+      ? ["Registered the mim MCP server with Claude Code at user scope (available in every project)."]
+      : [
+        `Registered the hosted mim MCP server (${remoteMcpUrl()}) with Claude Code at user scope.`,
+        "In Claude Code, run /mcp, pick mim and sign in in the browser. That is the only step left.",
+      ],
   };
 }
 
@@ -161,8 +192,9 @@ export function installClaudeDesktopMcp(project: string, configPath = claudeDesk
   return installJsonMcpAgent("Claude Desktop", configPath, project);
 }
 
-export function installCursorMcp(project: string, configPath = cursorConfigPath()): DesktopOutcome {
-  return installJsonMcpAgent("Cursor", configPath, project);
+export function installCursorMcp(project: string, configPath = cursorConfigPath(), mode: InstallMode = {}): DesktopOutcome {
+  return installJsonMcpAgent("Cursor", configPath, project,
+    mode.local ? undefined : remoteMcpServerEntry(project));
 }
 
 export function installWindsurfMcp(project: string, configPath = windsurfConfigPath()): DesktopOutcome {
@@ -193,14 +225,15 @@ export function installCodexMcp(project: string, configPath = codexConfigPath())
   };
 }
 
-export function installJsonMcpAgent(label: string, configPath: string, project: string): DesktopOutcome {
+export function installJsonMcpAgent(label: string, configPath: string, project: string,
+  entry?: Record<string, unknown>): DesktopOutcome {
   if (!existsSync(dirname(configPath))) {
     return { status: "not_installed", lines: [`${label} does not look installed (no ${dirname(configPath)}).`] };
   }
   const existingText = existsSync(configPath) ? readFileSync(configPath, "utf8") : null;
   let merged: string;
   try {
-    merged = mergeMcpServersConfig(existingText, project);
+    merged = mergeMcpServersConfig(existingText, project, entry ?? mimMcpServerEntry(project));
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     return {
@@ -224,7 +257,9 @@ export function installJsonMcpAgent(label: string, configPath: string, project: 
     lines: [
       `Added the mim server to ${label} config: ${configPath}`,
       ...(existingText !== null ? [`Previous config backed up to ${configPath}.bak`] : []),
-      `Restart ${label} to load it.`,
+      entry && "url" in entry
+        ? `Restart ${label}; it asks you to sign in to Mimetic the first time it uses the server.`
+        : `Restart ${label} to load it.`,
     ],
   };
 }
@@ -263,10 +298,11 @@ export function detectAgentDirs(env: NodeJS.ProcessEnv = process.env): DetectedA
 
 // Register with every agent found, so a Codex or Cursor user is not left
 // pasting a config block that the page told them to go find.
-export function installDetectedAgents(project: string, agents: DetectedAgent[]): { label: string; outcome: DesktopOutcome }[] {
+export function installDetectedAgents(project: string, agents: DetectedAgent[],
+  mode: InstallMode = {}): { label: string; outcome: DesktopOutcome }[] {
   return agents.map((agent) => {
     if (agent.kind === "codex") return { label: agent.label, outcome: installCodexMcp(project) };
-    if (agent.kind === "cursor") return { label: agent.label, outcome: installCursorMcp(project) };
+    if (agent.kind === "cursor") return { label: agent.label, outcome: installCursorMcp(project, cursorConfigPath(), mode) };
     if (agent.kind === "windsurf") return { label: agent.label, outcome: installWindsurfMcp(project) };
     return { label: agent.label, outcome: installClaudeDesktopMcp(project) };
   });
@@ -307,8 +343,9 @@ export async function probeMimMcpEndpoint(
   }
 }
 
-export async function installClaudeMcp(project: string, runtime: MimRuntime, exec: ExecFn = execCommand): Promise<void> {
-  const outcome = await registerClaudeCodeMcp(project, exec);
+export async function installClaudeMcp(project: string, runtime: MimRuntime, exec: ExecFn = execCommand,
+  mode: InstallMode = {}): Promise<void> {
+  const outcome = await registerClaudeCodeMcp(project, exec, mode);
   for (const line of outcome.lines) console.log(line);
 
   if (outcome.status === "cli_missing") {
@@ -331,6 +368,7 @@ export async function installClaudeMcp(project: string, runtime: MimRuntime, exe
     return;
   }
 
+  if (!mode.local && outcome.status === "registered") return;  // the client signs in itself
   if (!runtime.token) {
     console.log("Not signed in yet, so the server will fail to start. Run `mim auth login` to finish setup.");
     return;
@@ -357,22 +395,26 @@ export async function runMcp(args: string[]): Promise<void> {
     console.log("  mim mcp install windsurf   Windsurf");
     console.log("  mim mcp install desktop    Claude Desktop config file");
     console.log("  mim mcp install all        Every agent found on this machine");
+    console.log("Claude Code and Cursor get the hosted server (sign in once in the browser).");
+    console.log("Add --local to use the npx relay with your saved API key instead (CI, headless).");
     console.log("The MCP server exposes project-scoped growth context and recording review briefs without raw replay event dumps.");
     return;
   }
   if (subcommand !== "install") throw new Error(`unknown mcp command: ${subcommand}`);
   let printOnly = false;
+  const mode: InstallMode = {};
   for (const arg of kept) {
     if (arg === "--print") printOnly = true;
     else if (arg === "--run") printOnly = false;
+    else if (arg === "--local") mode.local = true;
     else throw new Error(`unknown mcp install option: ${arg}`);
   }
   if (target === "claude") {
     if (printOnly) {
-      console.log(claudeMcpInstallCommand(project).map((part) => (/\s/.test(part) ? JSON.stringify(part) : part)).join(" "));
+      console.log(claudeMcpInstallCommand(project, mode).map((part) => (/\s/.test(part) ? JSON.stringify(part) : part)).join(" "));
       return;
     }
-    await installClaudeMcp(project, runtime);
+    await installClaudeMcp(project, runtime, execCommand, mode);
     return;
   }
   if (target === "desktop") {
@@ -385,12 +427,13 @@ export async function runMcp(args: string[]): Promise<void> {
     if (printOnly) {
       console.log(target === "codex"
         ? codexMcpConfig(project)
-        : JSON.stringify({ mcpServers: { mim: mimMcpServerEntry(project) } }, null, 2));
+        : JSON.stringify({ mcpServers: { mim: target === "cursor" && !mode.local
+          ? remoteMcpServerEntry(project) : mimMcpServerEntry(project) } }, null, 2));
       return;
     }
     const outcome = target === "codex"
       ? installCodexMcp(project)
-      : target === "cursor" ? installCursorMcp(project) : installWindsurfMcp(project);
+      : target === "cursor" ? installCursorMcp(project, cursorConfigPath(), mode) : installWindsurfMcp(project);
     for (const line of outcome.lines) console.log(line);
     if (outcome.status !== "written") process.exitCode = 1;
     return;
@@ -402,7 +445,7 @@ export async function runMcp(args: string[]): Promise<void> {
       console.log("For Claude Code run: mim mcp install claude");
       return;
     }
-    for (const { label, outcome } of installDetectedAgents(project, agents)) {
+    for (const { label, outcome } of installDetectedAgents(project, agents, mode)) {
       for (const line of outcome.lines) console.log(`${label}: ${line}`);
       if (outcome.status !== "written") process.exitCode = 1;
     }
