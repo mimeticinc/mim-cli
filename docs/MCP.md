@@ -3,6 +3,25 @@
 [Connection guide and use cases](https://trymimetic.com/docs/mcp) ·
 [Live tool catalog](https://mcp.trymimetic.com/docs/mcp/tools.json)
 
+## Hosted server (recommended)
+
+Connect your AI app straight to the hosted server and sign in with OAuth:
+
+```text
+https://mcp.trymimetic.com/mcp?toolsets=diagnose,data
+```
+
+`npx -y @mimeticinc/mim-cli setup` registers it with every app on this machine.
+The [README](../README.md#set-up-one-app-by-hand) has one-click links and
+commands per app, and explains the `?toolsets=` choice (`diagnose,data` loads
+the tools most conversations need; add `setup` or `account` for the rest; no
+`?toolsets=` loads every tool).
+
+## Local relay (deprecated)
+
+The relay still works but no longer receives updates. Use the hosted server
+above unless your client cannot reach a remote server.
+
 The package exposes `mim-mcp`, a small stdio-to-HTTP bridge for Mimetic's hosted
 MCP server. It reads newline-delimited JSON-RPC from stdin, sends each message to
 `https://trymimetic.com/api/mim/mcp`, and writes the JSON-RPC response to stdout.
@@ -124,7 +143,7 @@ Clients that support Streamable HTTP and OAuth can use the canonical hosted
 endpoint without the stdio bridge:
 
 ```text
-https://mcp.trymimetic.com/mcp
+https://mcp.trymimetic.com/mcp?toolsets=diagnose,data
 ```
 
 The client follows the OAuth discovery challenge, opens Mimetic sign-in and
@@ -158,8 +177,9 @@ curl https://mcp.trymimetic.com/mcp \
 The server has two broad classes of tools:
 
 - Read/query tools for projects, findings, billing state, redacted replay
-  insights, and provider-read-only GA4, Search Console, Google Ads, PostHog,
-  Klaviyo, Mixpanel, and experimentation data.
+  insights, page speed and accessibility checks, and provider-read-only GA4,
+  Search Console, Google Ads, BigQuery, PostHog, Mixpanel, Amplitude, Adobe
+  Analytics, Klaviyo, Shopify, Webflow and experimentation data.
 - Action tools that can start audits, initiate fix workflows, connect accounts,
   or create and configure analytics and advertising resources.
 

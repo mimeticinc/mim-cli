@@ -13,66 +13,102 @@ results to identify revenue opportunities and implement reviewable improvements.
 The public catalog contains tool definitions. MCP requests require authentication
 and enforce access to your own projects and connected accounts.
 
-## Connect without installing anything
+## Set up (recommended)
 
-Most AI apps connect to the hosted server directly and sign you in through
-the browser. Nothing to install and no API key to store:
+One command, no global install:
 
-| App | How |
-|---|---|
-| Claude (web, desktop) | Settings, Connectors, Add custom connector: `https://mcp.trymimetic.com/mcp` |
-| ChatGPT | Settings, Connectors (developer mode), add `https://mcp.trymimetic.com/mcp` |
-| Claude Code | `claude mcp add --transport http --scope user mim https://mcp.trymimetic.com/mcp`, then `/mcp` to sign in |
-| Cursor | Add `{"mcpServers": {"mim": {"url": "https://mcp.trymimetic.com/mcp"}}}` to `~/.cursor/mcp.json`; Cursor asks you to sign in |
-| VS Code | Command palette, MCP: Add Server, HTTP, `https://mcp.trymimetic.com/mcp` |
+```bash
+npx -y @mimeticinc/mim-cli setup
+```
 
-The CLI below is for the terminal, scripts, and clients that cannot reach a
-remote server.
+Setup finds the AI apps on this machine (Claude Code, Codex, Cursor, VS Code,
+Windsurf), points each one at the hosted server and signs you in through the
+browser. Claude (web and desktop) and ChatGPT get the connector steps, because
+their config cannot hold a remote server. No API key is written into any
+app's config, other MCP servers you have are left alone, and each config file
+is backed up before it is written. Re-running setup is safe: it reuses your
+login and registration.
 
-## Quick start
-
-Install it, then run setup. Setup handles sign-in, project detection, and MCP
-registration for whichever agents this machine has, and verifies each step for
-real rather than assuming it worked.
+To use `mim` commands in your terminal as well, install it globally
+(Node.js 20 or newer):
 
 ```bash
 npm install -g @mimeticinc/mim-cli
 mim setup
 ```
 
-Setup points every AI app it finds at the hosted server,
-`https://mcp.trymimetic.com/mcp`: Claude Code, Codex, Cursor, VS Code and
-Windsurf get a config entry and sign you in in the browser the first time;
-Claude Desktop gets the connector steps (its config file cannot hold a remote
-server). No API key is written into any app's config.
+## Set up one app by hand
 
-For CI and clients without browser sign-in, run `mim mcp headless`: it prints
-a config that sends your key from the `MIM_API_TOKEN` environment variable
-(`export MIM_API_TOKEN=$(mim auth token)`).
+Every app connects to the same hosted server and signs you in with OAuth:
 
-The local `mim-mcp` relay is deprecated. It still works, and `--local` still
-writes it, but it will stop receiving updates; move to the hosted server. Each config file is backed up
-before it is written, and any other MCP servers you have are left alone. Add
-one later with `mim mcp install cursor`, or re-run `mim mcp install all`.
-
-Install globally rather than through `npx`. Your agent launches `mim` as the
-MCP server, so it needs a `mim` that stays on your PATH, and every example in
-these docs is written as `mim <command>`. Requires Node.js 20 or newer.
-
-Re-running setup is safe: it reuses your existing login and registration
-instead of creating new credentials.
-
-If `mim` says "command not found" after the install, npm's global bin
-directory is not on your shell PATH. Run this to see the exact fix for your
-shell:
-
-```bash
-npx -y @mimeticinc/mim-cli setup
+```
+https://mcp.trymimetic.com/mcp?toolsets=diagnose,data
 ```
 
-That prints the `export PATH=` line to add to your shell profile. Use the npx
-form for one-off commands too, but install globally before wiring up an MCP
-client.
+### Cursor
+
+[Install in Cursor](cursor://anysphere.cursor-deeplink/mcp/install?name=mim&config=eyJ1cmwiOiJodHRwczovL21jcC50cnltaW1ldGljLmNvbS9tY3A/dG9vbHNldHM9ZGlhZ25vc2UsZGF0YSJ9),
+or add this to `~/.cursor/mcp.json` and Cursor asks you to sign in:
+
+```json
+{"mcpServers": {"mim": {"url": "https://mcp.trymimetic.com/mcp?toolsets=diagnose,data"}}}
+```
+
+### Claude Code
+
+```bash
+claude mcp add --transport http --scope user mim "https://mcp.trymimetic.com/mcp?toolsets=diagnose,data"
+```
+
+Then run `/mcp` in Claude Code to sign in.
+
+### Claude (web and desktop)
+
+Settings, Connectors, Add custom connector, and paste the server URL above.
+On Team and Enterprise plans an owner adds it first.
+
+### Codex
+
+```bash
+codex mcp add mim --url "https://mcp.trymimetic.com/mcp?toolsets=diagnose,data"
+```
+
+### ChatGPT
+
+Settings, Connectors (developer mode), add the server URL above.
+
+### VS Code
+
+[Install in VS Code](https://vscode.dev/redirect/mcp/install?name=mim&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A//mcp.trymimetic.com/mcp%3Ftoolsets%3Ddiagnose%2Cdata%22%7D),
+or add this to `.vscode/mcp.json`:
+
+```json
+{"servers": {"mim": {"type": "http", "url": "https://mcp.trymimetic.com/mcp?toolsets=diagnose,data"}}}
+```
+
+### Other apps
+
+Use the server URL above with OAuth if the app supports it. For CI and apps
+without browser sign-in, `mim mcp headless` prints a config that sends your
+key from the `MIM_API_TOKEN` environment variable
+(`export MIM_API_TOKEN=$(mim auth token)`).
+
+## Choosing which tools load
+
+`?toolsets=diagnose,data` loads the tools most conversations need, so the rest
+stay out of your assistant's context:
+
+| Toolset | What it covers |
+|---|---|
+| `diagnose` | Projects, scans, findings and fixes, page speed, accessibility, session recordings |
+| `data` | Read-only queries: GA4, Search Console, Google Ads, BigQuery, PostHog, Mixpanel, Amplitude, Adobe Analytics, Klaviyo, Shopify, Webflow, A/B test results |
+| `setup` | Connecting tools, provisioning analytics and Google Ads, session recording |
+| `account` | Billing and checkout links |
+
+Add a toolset to the list (for example `?toolsets=diagnose,data,setup`) when
+you want your assistant to connect tools or set up tracking. The URL without
+`?toolsets=` loads every tool. The [live tool catalog](https://mcp.trymimetic.com/docs/mcp/tools.json)
+lists each tool, its inputs and whether it reads or writes.
 
 Mimetic connects audits, live analytics, ad performance, lifecycle marketing,
 and session behavior so you can find what is holding growth back, decide what
@@ -257,9 +293,8 @@ Run `mim --help` for all options.
 
 ## MCP
 
-The `mim-mcp` binary proxies MCP stdio messages to Mimetic's hosted
-Streamable HTTP endpoint. `mim setup` registers it for you. To register only
-the MCP piece:
+`mim setup` registers the hosted server with every app it finds. To register
+only the MCP piece, or one app at a time:
 
 ```bash
 mim mcp install all       # every agent found on this machine
@@ -368,3 +403,7 @@ The hosted MCP server records each tool call on our side (tool name, which
 app called it, duration, outcome, argument names) and never argument values
 or results.
 
+## Local relay (deprecated)
+
+The local `mim-mcp` stdio relay still works and `mim setup --local` still
+writes it, but it no longer receives updates. Move to the hosted server above.
