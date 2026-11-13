@@ -202,7 +202,7 @@ export async function proxyMimMcpMessage(raw: string, options: MimMcpOptions, fe
 
 export const MIM_MCP_DEPRECATION = [
   "mim-mcp: this local relay is deprecated and will stop receiving updates.",
-  "Connect your client to the hosted server instead: https://mcp.trymimetic.com/mcp",
+  "Connect your client to the hosted server instead: https://mcp.trymimetic.com/mcp?toolsets=diagnose,data",
   "Run `mim setup` to switch every client on this machine, or `mim mcp headless` for CI.",
 ].join("\n");
 

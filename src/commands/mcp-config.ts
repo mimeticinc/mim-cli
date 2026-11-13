@@ -27,8 +27,12 @@ export function execCommand(command: string, args: string[]): Promise<ExecResult
 // API key on disk, nothing to update when the server gains tools, and no
 // local relay timeout. --local keeps the npx stdio relay (CI, headless, or a
 // client without remote support).
+// The lean toolsets (diagnose + data) load by default, the same URL the docs
+// page installs: setup and account tools stay out of the client's context
+// until asked for. A bare /mcp URL still serves the full list.
+export const LEAN_TOOLSETS = "diagnose,data";
 export function remoteMcpUrl(env: NodeJS.ProcessEnv = process.env): string {
-  return env.MIM_REMOTE_MCP_URL || "https://mcp.trymimetic.com/mcp";
+  return env.MIM_REMOTE_MCP_URL || `https://mcp.trymimetic.com/mcp?toolsets=${LEAN_TOOLSETS}`;
 }
 
 export type InstallMode = { local?: boolean };

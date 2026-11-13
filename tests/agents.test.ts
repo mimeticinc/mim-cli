@@ -61,7 +61,7 @@ describe("Cursor and Windsurf share the mcpServers shape", () => {
     expect(written.mcpServers.other).toEqual({ command: "x", args: [] });
     // Default is the hosted server: Cursor signs in itself, no key on disk.
     expect(written.mcpServers.mim).toEqual({
-      url: "https://mcp.trymimetic.com/mcp", headers: { "x-mim-project": "shop-com-1234" },
+      url: "https://mcp.trymimetic.com/mcp?toolsets=diagnose,data", headers: { "x-mim-project": "shop-com-1234" },
     });
     expect(outcome.lines.join(" ")).toContain("sign in");
     expect(existsSync(`${cfg}.bak`)).toBe(true);

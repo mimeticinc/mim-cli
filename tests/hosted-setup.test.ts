@@ -12,7 +12,7 @@ import {
 } from "../src/commands/mcp-config";
 import { MIM_MCP_DEPRECATION } from "../src/mim-mcp-stdio";
 
-const URL = "https://mcp.trymimetic.com/mcp";
+const URL = "https://mcp.trymimetic.com/mcp?toolsets=diagnose,data";
 const tempHome = () => mkdtempSync(join(tmpdir(), "mim-hosted-"));
 
 describe("hosted setup for every client (the Stripe pattern)", () => {

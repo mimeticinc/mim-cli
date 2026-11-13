@@ -3,7 +3,7 @@
   "mcpServers": {
     "mimetic": {
       "type": "streamable-http",
-      "url": "https://mcp.trymimetic.com/mcp"
+      "url": "https://mcp.trymimetic.com/mcp?toolsets=diagnose,data"
     }
   }
 }

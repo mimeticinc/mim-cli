@@ -101,7 +101,7 @@ describe("mim CLI helpers", () => {
   it("builds MCP install snippets for Claude Code and Codex", () => {
     expect(claudeMcpInstallCommand("dubbah")).toEqual([
       "claude", "mcp", "add", "--transport", "http", "--scope", "user",
-      "--header", "x-mim-project: dubbah", "mim", "https://mcp.trymimetic.com/mcp",
+      "--header", "x-mim-project: dubbah", "mim", "https://mcp.trymimetic.com/mcp?toolsets=diagnose,data",
     ]);
     expect(claudeMcpInstallCommand("dubbah", { local: true })).toEqual([
       "claude",
@@ -122,7 +122,7 @@ describe("mim CLI helpers", () => {
       "dubbah",
     ]);
     expect(codexMcpConfig("dubbah")).toContain("[mcp_servers.mim]");
-    expect(codexMcpConfig("dubbah")).toContain('url = "https://mcp.trymimetic.com/mcp"');
+    expect(codexMcpConfig("dubbah")).toContain('url = "https://mcp.trymimetic.com/mcp?toolsets=diagnose,data"');
     expect(codexMcpConfig("dubbah", { local: true })).toContain('"mim-mcp"');
     expect(codexMcpConfig("dubbah")).toContain('"dubbah"');
   });
